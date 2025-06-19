@@ -1,26 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BiArrowBack } from "react-icons/bi";
 import { MdAccessTime } from "react-icons/md";
 import { FaRobot } from "react-icons/fa";
 
 const styles = `
-
 @keyframes blink {
   0% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.4); opacity: 0.6; }
   100% { transform: scale(1); opacity: 1; }
 }
-
 @keyframes detailFadeIn {
   0% { transform: translateY(20px); opacity: 0; }
   100% { transform: translateY(0); opacity: 1; }
 }
-
 .detail-animation {
   animation: detailFadeIn 0.5s ease-in-out forwards;
 }
-  
-
+@keyframes slideIn {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 .expand {
   max-height: 400px;
@@ -33,10 +31,6 @@ const styles = `
   opacity: 0;
   overflow: hidden;
   transition: max-height 0.6s ease, opacity 0.6s ease;
-}
-@keyframes slideIn {
-  from { transform: translateY(30px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
 }
 .toggle-btns {
   display: flex;
@@ -72,11 +66,10 @@ const styles = `
 }
 `;
 
-const AssetLayout = ({ activeAsset, expandedId }) => {
+const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPathLength }) => {
   const rows = 10;
   const cols = 10;
   const cellSize = 50;
-
   const cells = [];
   for (let row = 0; row <= rows; row++) {
     for (let col = 0; col <= cols; col++) {
@@ -95,68 +88,133 @@ const AssetLayout = ({ activeAsset, expandedId }) => {
     }
   }
 
-  const positions = {
-    '1': { x: 100, y: 100 },
-    '2': { x: 200, y: 150 },
-    '3': { x: 300, y: 200 },
-    '4': { x: 150, y: 250 },
+  const areaColors = {
+    'Storage': '#007bff',
+    'Asset': '#ff9800',
+    'Service': '#4caf50'
   };
 
-  const circles = expandedId && positions[expandedId] ? (
+  const trailCircles = trailPath.map((step, index) => {
+    const isLastStep = index === trailPath.length - 1 && trailPath.length === finalPathLength;
+    return (
+      <React.Fragment key={`trail-${index}`}>
+        <rect
+          x={step.x}
+          y={step.y}
+          width={cellSize}
+          height={cellSize}
+          fill={isLastStep ? 'green' : (areaColors[step.label] || '#888')}
+          opacity={0.6}
+        />
+        {isLastStep && (
+          <text
+            x={step.x + cellSize / 2}
+            y={step.y - 10}
+            textAnchor="middle"
+            fontFamily="Times New Roman"
+            fontSize="14"
+            fontWeight="bold"
+            fill="green"
+          >
+            Destination Reached
+          </text>
+        )}
+      </React.Fragment>
+    );
+  });
+
+  const marker = showMarker && currentPos && (
     <>
       <circle
-        cx={positions[expandedId].x}
-        cy={positions[expandedId].y}
-        r="18"
+        cx={currentPos.x + cellSize / 2}
+        cy={currentPos.y + cellSize / 2}
+        r="14"
         fill={activeAsset === 'Forklifts' ? 'yellow' : activeAsset === 'Cranes' ? 'orange' : 'blue'}
         stroke="#000"
         strokeWidth="1"
       />
       <text
-        x={positions[expandedId].x}
-        y={positions[expandedId].y - 25}
+        x={currentPos.x + cellSize / 2}
+        y={currentPos.y + cellSize / 2 - 20}
         textAnchor="middle"
         className="tooltip"
       >
-        {activeAsset === 'Forklifts' ? `ForkliftID: #${expandedId}` : activeAsset === 'Cranes' ? `CraneID: #${expandedId}` : `OperatorID: #${expandedId}`}
+        {activeAsset} Tracking
       </text>
     </>
-  ) : null;
+  );
 
   return (
-    <svg width="100%" height="100%" viewBox={`0 0 ${cols * cellSize} ${rows * cellSize}`}>
+    <svg width="100%" height="100%" viewBox={`-60 -25 ${cols * cellSize + 120} ${rows * cellSize + 100}`}>
       {cells}
-      {circles}
+      {trailCircles}
+      {marker}
+      <text x="-100" y="25" fontFamily="Times New Roman" fontSize="16" fill="#000">
+        Asset Area
+      </text>
+      <text x="-110" y={rows * cellSize + 30} fontFamily="Times New Roman" fontSize="16" fill="#000">
+        Storage Area
+      </text>
+      <text x={cols * cellSize + 75} y={rows * cellSize + 30} fontFamily="Times New Roman" fontSize="16" fill="#000">
+        Service Area
+      </text>
     </svg>
   );
 };
 
 const Dashboard = () => {
+  const [trailPath, setTrailPath] = useState([]);
+  const [currentPos, setCurrentPos] = useState(null);
   const [panelOpen, setPanelOpen] = useState(true);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [activeToggle, setActiveToggle] = useState('Live Tracking');
-  const [activeButton, setActiveButton] = useState('');
-  const [activeAsset, setActiveAsset] = useState('');
+  const [activeButton, setActiveButton] = useState('1 Hour');
+  const [activeAsset, setActiveAsset] = useState('Forklifts');
   const [expandedId, setExpandedId] = useState(null);
+  const [finalPathLength, setFinalPathLength] = useState(0);
+  const isMobile = false;
+  const movementRef = useRef(null);
 
-  const handleResize = () => setIsMobile(window.innerWidth < 768);
+  const predefinedPaths = {
+    '1': [ { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }, { row: 2, col: 3 }, { row: 2, col: 4 },{ row: 2, col: 5 },{ row: 2, col: 6}, { row: 2, col: 7}, { row: 2, col: 8}, { row: 3, col: 8 },{ row: 4, col: 8 },{ row: 4, col: 9}, { row: 5, col: 9}, { row: 5, col: 10}, { row: 6, col: 10},{ row: 7, col: 10},{ row: 8, col: 10},{ row: 9, col: 10},{ row: 10, col: 10 }],
+    '2': [ { row: 2, col: 2 }, { row: 3, col: 2 }, { row: 4, col: 2 }, { row: 4, col: 3 },{ row: 4, col: 4}, { row: 4, col: 5 },{ row: 3, col: 5 }, { row: 2, col: 5 },{ row: 1, col: 5 },{ row: 0, col: 5 },{ row: 0, col: 4 },{ row: 0, col: 3 },{ row: 0, col: 2 },{ row: 0, col: 1 }, { row: 0, col: 0}],
+    '3': [ { row: 3, col: 1 }, { row: 3, col: 2 }, { row: 3, col: 3 }, { row: 3, col: 4 } ],
+    '4': [ { row: 4, col: 4 }, { row: 5, col: 4 }, { row: 5, col: 5 } ]
+  };
 
-  useEffect(() => {
-    window.addEventListener('resize', handleResize);
-    handleResize();
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const handleIdClick = (id) => {
+    setExpandedId(prev => (prev === id ? null : id));
+    clearInterval(movementRef.current);
+    const path = predefinedPaths[id];
+    if (!path) return;
+    setFinalPathLength(path.length);
+    setTrailPath([]);
+    setCurrentPos(null);
+    let index = 0;
+    movementRef.current = setInterval(() => {
+      if (index < path.length) {
+        const step = path[index];
+        const x = step.col * 50;
+        const y = step.row * 50;
+        setTrailPath(prev => [...prev, { x, y }]);
+        setCurrentPos({ x, y });
+        index++;
+      } else {
+        clearInterval(movementRef.current);
+      }
+    }, 600);
+  };
 
-  useEffect(() => {
-    setPanelOpen(!isMobile);
-  }, [isMobile]);
-
-  const handleButtonClick = (label) => setActiveButton(label);
   const handleAssetClick = (label) => {
     setActiveAsset(label);
+    setTrailPath([]);
+    setCurrentPos(null);
     setExpandedId(null);
+    setFinalPathLength(0);
   };
-  const handleIdClick = (id) => setExpandedId(prev => (prev === id ? null : id));
+
+  const handleButtonClick = (label) => {
+    setActiveButton(label);
+  };
 
   const assetIds = ['1', '2', '3', '4'];
   const getCurrentIds = () =>
@@ -175,30 +233,6 @@ const Dashboard = () => {
     transform: activeLabel === label ? 'translateY(-2px)' : 'translateY(0)',
     transition: 'all 0.2s ease-in-out'
   });
-
-  const renderDetails = () => (
-    <div style={{
-      backgroundColor: '#f1f5f9', borderRadius: '12px', marginTop: '8px',
-      boxShadow: '0 4px 8px rgba(0,0,0,0.06)', fontFamily: 'Times New Roman', color: '#1e293b',
-    }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '16px' }}>
-        {['Average Speed', 'Distance Travelled', 'Pace', 'Load Count'].map((title, i) => (
-          <div key={i} style={{ backgroundColor: '#e2e8f0', borderRadius: '10px', padding: '10px', textAlign: 'center' }}>
-            <div style={{ fontSize: '13px', marginBottom: '5px' }}>{title}</div>
-            <div style={{ fontSize: '15px', fontWeight: 'bold' }}>{['14 km/hr', '14 km', '6 minutes/km', '12'][i]}</div>
-          </div>
-        ))}
-      </div>
-      <div style={{
-        backgroundColor: '#cbd5e1', borderRadius: '10px', padding: '15px', margin: '15px',
-        fontSize: '15px', color: '#1e293b', boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-      }}>
-        <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '10px' }}>Path Details</div>
-        {['Loading Zone - 10:00 AM', 'Storage Area - 10:30 AM', 'Processing Unit - 11:00 AM', 'Packaging - 11:30 AM', 'Exit - 12:00 PM']
-          .map((text, idx) => <div key={idx}>{idx + 1} : {text}</div>)}
-      </div>
-    </div>
-  );
 
   return (
     <>
@@ -226,9 +260,16 @@ const Dashboard = () => {
               display: 'flex', justifyContent: 'center', alignItems: 'center',
               fontSize: '22px', marginBottom: '20px', overflow: 'auto'
             }}>
-              <AssetLayout activeAsset={activeAsset} expandedId={expandedId} />
+              <AssetLayout
+                activeAsset={activeAsset}
+                trailPath={trailPath}
+                currentPos={currentPos}
+                showMarker={expandedId !== null}
+                finalPathLength={finalPathLength}
+              />
             </div>
           </div>
+
           <div style={{
             backgroundColor: '#f1f5f9',
             borderRadius: '15px',
@@ -249,6 +290,7 @@ const Dashboard = () => {
             ))}
           </div>
         </div>
+
         {panelOpen && (
           <div style={{
             width: isMobile ? '100%' : '420px',
@@ -277,6 +319,7 @@ const Dashboard = () => {
                 </button>
               </div>
             </div>
+
             <div style={{ backgroundColor: '#f1f5f9', borderRadius: '15px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)', padding: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
                 <MdAccessTime size={18} color="#001f3f" />
@@ -294,6 +337,7 @@ const Dashboard = () => {
                 ))}
               </div>
             </div>
+
             <div style={{
               backgroundColor: '#f1f5f9', borderRadius: '15px',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
@@ -329,9 +373,6 @@ const Dashboard = () => {
                     onClick={() => handleIdClick(id)}
                   >
                     {activeAsset === 'Forklifts' ? `ForkliftID : #${id}` : activeAsset === 'Cranes' ? `CraneID : #${id}` : `OperatorID : #${id}`}
-                  </div>
-                  <div className={expandedId === id ? 'expand' : 'collapse'}>
-                    {expandedId === id && renderDetails()}
                   </div>
                 </div>
               ))}
