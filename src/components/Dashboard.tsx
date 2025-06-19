@@ -271,24 +271,39 @@ const Dashboard = () => {
           </div>
 
           <div style={{
-            backgroundColor: '#f1f5f9',
-            borderRadius: '15px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
-            padding: '15px 20px',
-            display: 'flex',
-            justifyContent: 'space-around',
-            alignItems: 'center',
-            fontFamily: 'Times New Roman',
-            fontSize: '16px',
-            color: '#1e293b'
-          }}>
-            {['Forklift', 'Operator', 'Crane', 'Destination', 'Work'].map((label, index) => (
-              <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '1px solid #000' }}></div>
-                <span>{label}</span>
-              </div>
-            ))}
-          </div>
+  backgroundColor: '#f1f5f9',
+  borderRadius: '15px',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+  padding: '15px 20px',
+  display: 'flex',
+  justifyContent: 'space-around',
+  alignItems: 'center',
+  fontFamily: 'Times New Roman',
+  fontSize: '16px',
+  color: '#1e293b'
+}}>
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'yellow', border: '1px solid #000' }}></div>
+    <span>Forklift</span>
+  </div>
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'blue', border: '1px solid #000' }}></div>
+    <span>Operator</span>
+  </div>
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'orange', border: '1px solid #000' }}></div>
+    <span>Crane</span>
+  </div>
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'green', border: '1px solid #000' }}></div>
+    <span>Destination</span>
+  </div>
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#888888', border: '1px solid #000' }}></div>
+    <span>Work</span>
+  </div>
+</div>
+
         </div>
 
         {panelOpen && (
