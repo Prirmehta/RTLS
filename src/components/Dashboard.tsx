@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { BiArrowBack } from "react-icons/bi";
 import { MdAccessTime } from "react-icons/md";
 import { FaRobot } from "react-icons/fa";
+import { GiHamburgerMenu } from "react-icons/gi";
 
 const styles = `
 @keyframes blink {
@@ -63,6 +64,25 @@ const styles = `
   font-family: 'Times New Roman';
   font-size: 13px;
   fill: #000000;
+}
+@media (max-width: 768px) {
+  .toggle-btns {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .toggle-btns button {
+    font-size: 14px;
+    padding: 8px 0;
+  }
+  .tooltip {
+    font-size: 11px;
+  }
+  .scroll-panel {
+    position: relative;
+    max-height: 55vh;
+    overflow-y: auto;
+    padding-bottom: 20px;
+  }
 }
 `;
 
@@ -161,24 +181,33 @@ const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPath
     </svg>
   );
 };
-
 const Dashboard = () => {
   const [trailPath, setTrailPath] = useState([]);
   const [currentPos, setCurrentPos] = useState(null);
-  const [panelOpen, setPanelOpen] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(window.innerWidth > 768);
   const [activeToggle, setActiveToggle] = useState('Live Tracking');
   const [activeButton, setActiveButton] = useState('1 Hour');
   const [activeAsset, setActiveAsset] = useState('Forklifts');
   const [expandedId, setExpandedId] = useState(null);
   const [finalPathLength, setFinalPathLength] = useState(0);
-  const isMobile = false;
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const movementRef = useRef(null);
 
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      setPanelOpen(!mobile);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const predefinedPaths = {
-    '1': [ { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }, { row: 2, col: 3 }, { row: 2, col: 4 },{ row: 2, col: 5 },{ row: 2, col: 6}, { row: 2, col: 7}, { row: 2, col: 8}, { row: 3, col: 8 },{ row: 4, col: 8 },{ row: 4, col: 9}, { row: 5, col: 9}, { row: 5, col: 10}, { row: 6, col: 10},{ row: 7, col: 10},{ row: 8, col: 10},{ row: 9, col: 10},{ row: 10, col: 10 }],
-    '2': [ { row: 2, col: 2 }, { row: 3, col: 2 }, { row: 4, col: 2 }, { row: 4, col: 3 },{ row: 4, col: 4}, { row: 4, col: 5 },{ row: 3, col: 5 }, { row: 2, col: 5 },{ row: 1, col: 5 },{ row: 0, col: 5 },{ row: 0, col: 4 },{ row: 0, col: 3 },{ row: 0, col: 2 },{ row: 0, col: 1 }, { row: 0, col: 0}],
-    '3': [ { row: 3, col: 1 }, { row: 3, col: 2 }, { row: 3, col: 3 }, { row: 3, col: 4 } ],
-    '4': [ { row: 4, col: 4 }, { row: 5, col: 4 }, { row: 5, col: 5 } ]
+    '1': [{ row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }, { row: 2, col: 3 }, { row: 2, col: 4 }, { row: 2, col: 5 }, { row: 2, col: 6 }, { row: 2, col: 7 }, { row: 2, col: 8 }, { row: 3, col: 8 }, { row: 4, col: 8 }, { row: 4, col: 9 }, { row: 5, col: 9 }, { row: 5, col: 10 }, { row: 6, col: 10 }, { row: 7, col: 10 }, { row: 8, col: 10 }, { row: 9, col: 10 }, { row: 10, col: 10 }],
+    '2': [{ row: 2, col: 2 }, { row: 3, col: 2 }, { row: 4, col: 2 }, { row: 4, col: 3 }, { row: 4, col: 4 }, { row: 4, col: 5 }, { row: 3, col: 5 }, { row: 2, col: 5 }, { row: 1, col: 5 }, { row: 0, col: 5 }, { row: 0, col: 4 }, { row: 0, col: 3 }, { row: 0, col: 2 }, { row: 0, col: 1 }, { row: 0, col: 0 }],
+    '3': [{ row: 3, col: 1 }, { row: 3, col: 2 }, { row: 3, col: 3 }, { row: 3, col: 4 }],
+    '4': [{ row: 4, col: 4 }, { row: 5, col: 4 }, { row: 5, col: 5 }]
   };
 
   const handleIdClick = (id) => {
@@ -237,101 +266,112 @@ const Dashboard = () => {
   return (
     <>
       <style>{styles}</style>
-      <div style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative', backgroundColor: '#ffffff' }}>
+      <div style={{
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        width: '100vw',
+        height: '100vh',
+        overflow: 'hidden',
+        position: 'relative',
+        backgroundColor: '#ffffff'
+      }}>
+        {/* Top fixed part (Map + Legend) */}
         <div style={{
           flex: panelOpen ? 2 : 1,
-          padding: '30px',
+          padding: isMobile ? '10px 15px' : '30px',
           backgroundColor: '#f8fafc',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-between'
+          height: isMobile ? 'auto' : '100%',
+          position: isMobile ? 'sticky' : 'static',
+          top: 0,
+          zIndex: 3
         }}>
-          <div>
-            <div style={{ fontSize: '25px', fontWeight: 'bold', fontFamily: 'Times New Roman', color: '#1e293b', marginBottom: '2px' }}>
-              Real-Time Location Tracker
-            </div>
-            <h3 style={{ fontFamily: 'Times New Roman', fontSize: '20px', margin: 0, color: '#64748b' }}>Warehouse</h3>
-            <div style={{
-              height: '75vh',
-              backgroundColor: '#fff',
-              border: '1px solid #000',
-              borderRadius: '5px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-              display: 'flex', justifyContent: 'center', alignItems: 'center',
-              fontSize: '22px', marginBottom: '20px', overflow: 'auto'
-            }}>
-              <AssetLayout
-                activeAsset={activeAsset}
-                trailPath={trailPath}
-                currentPos={currentPos}
-                showMarker={expandedId !== null}
-                finalPathLength={finalPathLength}
-              />
-            </div>
+          <div style={{ fontSize: isMobile ? '22px' : '25px', fontWeight: 'bold', fontFamily: 'Times New Roman', color: '#1e293b', marginBottom: '5px', textAlign: isMobile ? 'center' : 'left' }}>
+            Real-Time Location Tracker
+          </div>
+          <h3 style={{ fontFamily: 'Times New Roman', fontSize: isMobile ? '18px' : '20px', margin: 0, color: '#64748b', textAlign: isMobile ? 'center' : 'left' }}>Warehouse</h3>
+
+          <div style={{
+            height: isMobile ? '60vh' : '75vh',
+            backgroundColor: '#fff',
+            border: '1px solid #000',
+            borderRadius: '5px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            fontSize: '22px',
+            marginBottom: '15px',
+            overflow: 'auto'
+          }}>
+            <AssetLayout
+              activeAsset={activeAsset}
+              trailPath={trailPath}
+              currentPos={currentPos}
+              showMarker={expandedId !== null}
+              finalPathLength={finalPathLength}
+            />
           </div>
 
           <div style={{
-  backgroundColor: '#f1f5f9',
-  borderRadius: '15px',
-  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
-  padding: '15px 20px',
-  display: 'flex',
-  justifyContent: 'space-around',
-  alignItems: 'center',
-  fontFamily: 'Times New Roman',
-  fontSize: '16px',
-  color: '#1e293b'
-}}>
-  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-    <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'yellow', border: '1px solid #000' }}></div>
-    <span>Forklift</span>
-  </div>
-  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-    <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'blue', border: '1px solid #000' }}></div>
-    <span>Operator</span>
-  </div>
-  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-    <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'orange', border: '1px solid #000' }}></div>
-    <span>Crane</span>
-  </div>
-  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-    <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'green', border: '1px solid #000' }}></div>
-    <span>Destination</span>
-  </div>
-  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-    <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#888888', border: '1px solid #000' }}></div>
-    <span>Work</span>
-  </div>
-</div>
-
+            backgroundColor: '#f1f5f9',
+            borderRadius: '15px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+            padding: '12px 18px',
+            marginBottom: '15px',
+            display: 'flex',
+            justifyContent: isMobile ? 'center' : 'space-around',
+            alignItems: 'center',
+            flexWrap: isMobile ? 'wrap' : 'nowrap',
+            fontFamily: 'Times New Roman',
+            fontSize: '15px',
+            gap: isMobile ? '12px' : '0',
+            color: '#1e293b'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '14px', height: '14px', borderRadius: '50%', backgroundColor: 'yellow', border: '1px solid #000' }}></div>
+              <span>Forklift</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '14px', height: '14px', borderRadius: '50%', backgroundColor: 'blue', border: '1px solid #000' }}></div>
+              <span>Operator</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '14px', height: '14px', borderRadius: '50%', backgroundColor: 'orange', border: '1px solid #000' }}></div>
+              <span>Crane</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '14px', height: '14px', borderRadius: '50%', backgroundColor: 'green', border: '1px solid #000' }}></div>
+              <span>Destination</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '14px', height: '14px', borderRadius: '50%', backgroundColor: '#888888', border: '1px solid #000' }}></div>
+              <span>Work</span>
+            </div>
+          </div>
         </div>
 
+        {/* Right Panel */}
         {panelOpen && (
           <div style={{
             width: isMobile ? '100%' : '420px',
-            height: '100vh',
+            height: isMobile ? 'auto' : '100vh',
             backgroundColor: '#ffffff',
             boxShadow: '0 0 12px rgba(0,0,0,0.08)',
-            padding: '30px 25px',
-            display: 'flex', flexDirection: 'column', gap: '25px',
-            position: isMobile ? 'absolute' : 'relative', right: 0, top: 0,
-            zIndex: 5, overflow: 'hidden'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <div onClick={() => setPanelOpen(false)} style={{
-                width: '45px', height: '45px', borderRadius: '50%',
-                backgroundColor: '#f1f5f9', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.06)',
-                display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer'
-              }}>
-                <BiArrowBack size={24} color="#1e293b" style={{ transform: 'rotate(45deg)' }} />
+            padding: isMobile ? '20px' : '30px 25px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '25px',
+            overflowY: isMobile ? 'scroll' : 'auto'
+          }} className="scroll-panel">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+              <div onClick={() => setPanelOpen(false)} style={{ width: '45px', height: '45px', borderRadius: '50%', backgroundColor: '#f1f5f9', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.06)', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }}>
+                <GiHamburgerMenu size={20} color="#1e293b" />
               </div>
-              <div className="toggle-btns">
-                <button className={activeToggle === 'Live Tracking' ? 'active' : ''} onClick={() => setActiveToggle('Live Tracking')}>
-                  Live Tracking
-                </button>
-                <button className={activeToggle === 'Heat Map' ? 'active' : ''} onClick={() => setActiveToggle('Heat Map')}>
-                  Heat Map
-                </button>
+              <div className="toggle-btns" style={{ flexGrow: 1 }}>
+                <button className={activeToggle === 'Live Tracking' ? 'active' : ''} onClick={() => setActiveToggle('Live Tracking')}>Live Tracking</button>
+                <button className={activeToggle === 'Heat Map' ? 'active' : ''} onClick={() => setActiveToggle('Heat Map')}>Heat Map</button>
               </div>
             </div>
 
@@ -341,52 +381,34 @@ const Dashboard = () => {
                 <span style={{ fontFamily: 'Times New Roman', fontSize: '18px', color: '#1e293b' }}>Time Range</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                {['1 Hour', '1 Day', '1 Week'].map((label) => (
-                  <button
-                    key={label}
-                    style={buttonStyles(label, '#e2e8f0', '#1e293b', activeButton)}
-                    onClick={() => handleButtonClick(label)}
-                  >
-                    {label}
-                  </button>
+                {['1 Hour', '1 Day', '1 Week'].map(label => (
+                  <button key={label} style={buttonStyles(label, '#e2e8f0', '#1e293b', activeButton)} onClick={() => handleButtonClick(label)}>{label}</button>
                 ))}
               </div>
             </div>
 
-            <div style={{
-              backgroundColor: '#f1f5f9', borderRadius: '15px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
-              padding: '20px', flex: 1, overflowY: 'auto'
-            }}>
+            <div style={{ backgroundColor: '#f1f5f9', borderRadius: '15px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)', padding: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
                 <FaRobot size={18} color="#001f3f" />
                 <span style={{ fontFamily: 'Times New Roman', fontSize: '18px', color: '#1e293b' }}>Asset Type</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginBottom: '15px' }}>
-                {['Forklifts', 'Operators', 'Cranes'].map((label) => (
-                  <button
-                    key={label}
-                    style={buttonStyles(label, '#e2e8f0', '#1e293b', activeAsset)}
-                    onClick={() => handleAssetClick(label)}
-                  >
-                    {label}
-                  </button>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginBottom: '15px', flexWrap: 'wrap' }}>
+                {['Forklifts', 'Operators', 'Cranes'].map(label => (
+                  <button key={label} style={buttonStyles(label, '#e2e8f0', '#1e293b', activeAsset)} onClick={() => handleAssetClick(label)}>{label}</button>
                 ))}
               </div>
               <div style={{ height: '2px', backgroundColor: '#cbd5e1', marginBottom: '10px' }}></div>
               {getCurrentIds().map(id => (
                 <div key={id} style={{ marginBottom: '10px' }}>
-                  <div
-                    style={{
-                      padding: '10px', fontSize: '16px', fontFamily: 'Times New Roman',
-                      color: expandedId === id ? '#001f3f' : '#1e293b',
-                      fontWeight: expandedId === id ? 'bold' : 'normal',
-                      cursor: 'pointer', borderRadius: '10px',
-                      backgroundColor: expandedId === id ? '#e0f2fe' : 'transparent',
-                      transition: 'all 0.3s ease'
-                    }}
-                    onClick={() => handleIdClick(id)}
-                  >
+                  <div style={{
+                    padding: '10px', fontSize: '16px', fontFamily: 'Times New Roman',
+                    color: expandedId === id ? '#001f3f' : '#1e293b',
+                    fontWeight: expandedId === id ? 'bold' : 'normal',
+                    cursor: 'pointer',
+                    borderRadius: '10px',
+                    backgroundColor: expandedId === id ? '#e0f2fe' : 'transparent',
+                    transition: 'all 0.3s ease'
+                  }} onClick={() => handleIdClick(id)}>
                     {activeAsset === 'Forklifts' ? `ForkliftID : #${id}` : activeAsset === 'Cranes' ? `CraneID : #${id}` : `OperatorID : #${id}`}
                   </div>
                 </div>
@@ -394,15 +416,15 @@ const Dashboard = () => {
             </div>
           </div>
         )}
+
         {!panelOpen && (
           <div onClick={() => setPanelOpen(true)} style={{
-            position: 'absolute', top: '30px', right: '20px',
-            width: '45px', height: '45px', borderRadius: '50%',
-            backgroundColor: '#f1f5f9', boxShadow: '0 4px 8px rgba(0,0,0,0.08)',
-            display: 'flex', justifyContent: 'center', alignItems: 'center',
-            cursor: 'pointer', zIndex: 20
+            position: 'absolute', top: '30px', right: '20px', width: '45px', height: '45px',
+            borderRadius: '50%', backgroundColor: '#f1f5f9',
+            boxShadow: '0 4px 8px rgba(0,0,0,0.08)', display: 'flex',
+            justifyContent: 'center', alignItems: 'center', cursor: 'pointer', zIndex: 20
           }}>
-            <BiArrowBack size={24} color="#1e293b" style={{ transform: 'rotate(225deg)' }} />
+            <GiHamburgerMenu size={20} color="#1e293b" />
           </div>
         )}
       </div>
