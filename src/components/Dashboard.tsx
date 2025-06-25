@@ -86,10 +86,11 @@ const styles = `
 }
 `;
 
-const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPathLength }) => {
+const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPathLength, isMobile }) => {
   const rows = 10;
   const cols = 10;
-  const cellSize = 50;
+  const cellSize = isMobile ? 30 : 50;
+
   const cells = [];
   for (let row = 0; row <= rows; row++) {
     for (let col = 0; col <= cols; col++) {
@@ -100,9 +101,9 @@ const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPath
           y={row * cellSize}
           width={cellSize}
           height={cellSize}
-          fill="none"
-          stroke="#000"
-          strokeWidth="1"
+          fill="rgba(200,200,200,0.2)" // ✅ Light grey translucent grid
+          stroke="#aaa"
+          strokeWidth="0.8"
         />
       );
     }
@@ -116,30 +117,57 @@ const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPath
 
   const trailCircles = trailPath.map((step, index) => {
     const isLastStep = index === trailPath.length - 1 && trailPath.length === finalPathLength;
+    const isFirstStep = index === 0;
     return (
       <React.Fragment key={`trail-${index}`}>
-        <rect
-          x={step.x}
-          y={step.y}
-          width={cellSize}
-          height={cellSize}
+        <circle
+          cx={step.x + cellSize / 2}
+          cy={step.y + cellSize / 2}
+          r={6}
           fill={isLastStep ? 'green' : (areaColors[step.label] || '#888')}
-          opacity={0.6}
+          opacity={0.8}
         />
+        {isFirstStep && (
+          <text
+            x={step.x + cellSize / 2}
+            y={step.y - 10}
+            textAnchor="middle"
+            fontFamily="Times New Roman"
+            fontSize="13"
+            fill="#333"
+          >
+            Start
+          </text>
+        )}
         {isLastStep && (
           <text
             x={step.x + cellSize / 2}
             y={step.y - 10}
             textAnchor="middle"
             fontFamily="Times New Roman"
-            fontSize="14"
-            fontWeight="bold"
+            fontSize="13"
             fill="green"
           >
-            Destination Reached
+            End
           </text>
         )}
       </React.Fragment>
+    );
+  });
+
+  const trailLines = trailPath.slice(1).map((step, index) => {
+    const prev = trailPath[index];
+    return (
+      <line
+        key={`line-${index}`}
+        x1={prev.x + cellSize / 2}
+        y1={prev.y + cellSize / 2}
+        x2={step.x + cellSize / 2}
+        y2={step.y + cellSize / 2}
+        stroke="#444"
+        strokeWidth="2"
+        strokeDasharray="4"
+      />
     );
   });
 
@@ -148,7 +176,7 @@ const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPath
       <circle
         cx={currentPos.x + cellSize / 2}
         cy={currentPos.y + cellSize / 2}
-        r="14"
+        r={isMobile ? 8 : 14}
         fill={activeAsset === 'Forklifts' ? 'yellow' : activeAsset === 'Cranes' ? 'orange' : 'blue'}
         stroke="#000"
         strokeWidth="1"
@@ -167,6 +195,7 @@ const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPath
   return (
     <svg width="100%" height="100%" viewBox={`-60 -25 ${cols * cellSize + 120} ${rows * cellSize + 100}`}>
       {cells}
+      {trailLines}
       {trailCircles}
       {marker}
       <text x="-100" y="25" fontFamily="Times New Roman" fontSize="16" fill="#000">
@@ -203,15 +232,67 @@ const Dashboard = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const cellSize = isMobile ? 30 : 50;
+
   const predefinedPaths = {
-    '1': [{ row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }, { row: 2, col: 3 }, { row: 2, col: 4 }, { row: 2, col: 5 }, { row: 2, col: 6 }, { row: 2, col: 7 }, { row: 2, col: 8 }, { row: 3, col: 8 }, { row: 4, col: 8 }, { row: 4, col: 9 }, { row: 5, col: 9 }, { row: 5, col: 10 }, { row: 6, col: 10 }, { row: 7, col: 10 }, { row: 8, col: 10 }, { row: 9, col: 10 }, { row: 10, col: 10 }],
-    '2': [{ row: 2, col: 2 }, { row: 3, col: 2 }, { row: 4, col: 2 }, { row: 4, col: 3 }, { row: 4, col: 4 }, { row: 4, col: 5 }, { row: 3, col: 5 }, { row: 2, col: 5 }, { row: 1, col: 5 }, { row: 0, col: 5 }, { row: 0, col: 4 }, { row: 0, col: 3 }, { row: 0, col: 2 }, { row: 0, col: 1 }, { row: 0, col: 0 }],
-    '3': [{ row: 3, col: 1 }, { row: 3, col: 2 }, { row: 3, col: 3 }, { row: 3, col: 4 }],
-    '4': [{ row: 4, col: 4 }, { row: 5, col: 4 }, { row: 5, col: 5 }]
+    '1': [
+      { x: 1 * cellSize, y: 1 * cellSize },
+      { x: 2 * cellSize, y: 1 * cellSize },
+      { x: 3 * cellSize, y: 2 * cellSize },
+      { x: 5 * cellSize, y: 2 * cellSize },
+      { x: 7 * cellSize, y: 3 * cellSize },
+      { x: 8 * cellSize, y: 5 * cellSize },
+      { x: 10 * cellSize, y: 7 * cellSize },
+      { x: 10 * cellSize, y: 10 * cellSize },
+    ],
+    '2': [
+      { x: 2 * cellSize, y: 2 * cellSize },
+      { x: 2 * cellSize, y: 4 * cellSize },
+      { x: 3 * cellSize, y: 6 * cellSize },
+      { x: 5 * cellSize, y: 7 * cellSize },
+      { x: 5 * cellSize, y: 9 * cellSize },
+      { x: 2 * cellSize, y: 9 * cellSize },
+      { x: 0 * cellSize, y: 10 * cellSize }
+      
+    ],
+    '3': [
+      { x: 0 * cellSize, y: 0 * cellSize },
+      { x: 3 * cellSize, y: 1 * cellSize },
+      { x: 3 * cellSize, y: 3 * cellSize },
+      { x: 4 * cellSize, y: 5 * cellSize },
+      { x: 6 * cellSize, y: 6 * cellSize },
+      { x: 9 * cellSize, y: 6 * cellSize },
+      { x: 10 * cellSize, y: 6 * cellSize },
+      { x: 10 * cellSize, y: 10 * cellSize },
+      { x: 7 * cellSize, y: 10 * cellSize },
+      { x: 0 * cellSize, y: 10 * cellSize },
+    ],
+    '4': [
+      { x: 10 * cellSize, y: 10 * cellSize },
+      { x: 8 * cellSize, y: 10 * cellSize },
+      { x: 6 * cellSize, y: 8 * cellSize },
+      { x: 5 * cellSize, y: 6 * cellSize },
+      { x: 5 * cellSize, y: 3 * cellSize },
+      { x: 3 * cellSize, y: 3 * cellSize },
+      { x: 3 * cellSize, y: 7 * cellSize },
+      { x: 0 * cellSize, y: 10 * cellSize },
+      { x: 0 * cellSize, y: 5 * cellSize },
+      { x: 0 * cellSize, y: 0 * cellSize },
+     
+    ]
   };
 
   const handleIdClick = (id) => {
-    setExpandedId(prev => (prev === id ? null : id));
+    if (expandedId === id) {
+      // If already selected, clicking again will deselect
+      setExpandedId(null);
+      setTrailPath([]);
+      setCurrentPos(null);
+      clearInterval(movementRef.current);
+      return;
+    }
+  
+    setExpandedId(id);
     clearInterval(movementRef.current);
     const path = predefinedPaths[id];
     if (!path) return;
@@ -222,16 +303,15 @@ const Dashboard = () => {
     movementRef.current = setInterval(() => {
       if (index < path.length) {
         const step = path[index];
-        const x = step.col * 50;
-        const y = step.row * 50;
-        setTrailPath(prev => [...prev, { x, y }]);
-        setCurrentPos({ x, y });
+        setTrailPath(prev => [...prev, step]);
+        setCurrentPos(step);
         index++;
       } else {
         clearInterval(movementRef.current);
       }
     }, 600);
   };
+  
 
   const handleAssetClick = (label) => {
     setActiveAsset(label);
@@ -275,7 +355,7 @@ const Dashboard = () => {
         position: 'relative',
         backgroundColor: '#ffffff'
       }}>
-        {/* Top fixed part (Map + Legend) */}
+        {/* Left Panel */}
         <div style={{
           flex: panelOpen ? 2 : 1,
           padding: isMobile ? '10px 15px' : '30px',
@@ -293,7 +373,7 @@ const Dashboard = () => {
           <h3 style={{ fontFamily: 'Times New Roman', fontSize: isMobile ? '18px' : '20px', margin: 0, color: '#64748b', textAlign: isMobile ? 'center' : 'left' }}>Warehouse</h3>
 
           <div style={{
-            height: isMobile ? '60vh' : '75vh',
+            height: isMobile ? '48vh' : '75vh',
             backgroundColor: '#fff',
             border: '1px solid #000',
             borderRadius: '5px',
@@ -311,6 +391,7 @@ const Dashboard = () => {
               currentPos={currentPos}
               showMarker={expandedId !== null}
               finalPathLength={finalPathLength}
+              isMobile={isMobile}
             />
           </div>
 
@@ -329,26 +410,21 @@ const Dashboard = () => {
             gap: isMobile ? '12px' : '0',
             color: '#1e293b'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '14px', height: '14px', borderRadius: '50%', backgroundColor: 'yellow', border: '1px solid #000' }}></div>
-              <span>Forklift</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '14px', height: '14px', borderRadius: '50%', backgroundColor: 'blue', border: '1px solid #000' }}></div>
-              <span>Operator</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '14px', height: '14px', borderRadius: '50%', backgroundColor: 'orange', border: '1px solid #000' }}></div>
-              <span>Crane</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '14px', height: '14px', borderRadius: '50%', backgroundColor: 'green', border: '1px solid #000' }}></div>
-              <span>Destination</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '14px', height: '14px', borderRadius: '50%', backgroundColor: '#888888', border: '1px solid #000' }}></div>
-              <span>Work</span>
-            </div>
+            {[
+              { color: 'yellow', label: 'Forklift' },
+              { color: 'blue', label: 'Operator' },
+              { color: 'orange', label: 'Crane' },
+              { color: 'green', label: 'Destination' },
+              { color: '#888888', label: 'Work' }
+            ].map((item, index) => (
+              <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                  width: '14px', height: '14px', borderRadius: '50%',
+                  backgroundColor: item.color, border: '1px solid #000'
+                }}></div>
+                <span>{item.label}</span>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -417,6 +493,7 @@ const Dashboard = () => {
           </div>
         )}
 
+        {/* Hamburger to reopen */}
         {!panelOpen && (
           <div onClick={() => setPanelOpen(true)} style={{
             position: 'absolute', top: '30px', right: '20px', width: '45px', height: '45px',
