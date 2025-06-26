@@ -3,6 +3,8 @@ import { BiArrowBack } from "react-icons/bi";
 import { MdAccessTime } from "react-icons/md";
 import { FaRobot } from "react-icons/fa";
 import { GiHamburgerMenu } from "react-icons/gi";
+import { FaMoon, FaSun } from "react-icons/fa";
+
 
 const styles = `
 @keyframes blink {
@@ -37,7 +39,8 @@ const styles = `
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f0f4f8;
+  background-color: 'black';
+  border-color: '#f0f4f8
   border-radius: 35px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06);
   overflow: hidden;
@@ -53,18 +56,32 @@ const styles = `
   cursor: pointer;
   transition: all 0.3s ease;
   background-color: transparent;
-  color: #334155;
+  color: black;
 }
 .toggle-btns button.active {
   background-color: #001f3f;
-  color: white;
+  color: BLACK;
   font-weight: bold;
+  box-shadow: 0 0 8px rgba(0, 31, 63, 0.4);
+  border-radius: 12px;
 }
+
+
+.dark-mode .toggle-btns button:not(.active) {
+  background-color: #000000;
+  color: #39FF14;
+  border: 1px solid #39FF14;
+}
+
+
+/* Tooltip */
 .tooltip {
   font-family: 'Times New Roman';
   font-size: 13px;
   fill: #000000;
 }
+
+/* Responsive */
 @media (max-width: 768px) {
   .toggle-btns {
     flex-direction: column;
@@ -86,7 +103,7 @@ const styles = `
 }
 `;
 
-const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPathLength, isMobile }) => {
+const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPathLength, isMobile, isDarkMode }) => {
   const rows = 10;
   const cols = 10;
   const cellSize = isMobile ? 30 : 50;
@@ -101,8 +118,8 @@ const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPath
           y={row * cellSize}
           width={cellSize}
           height={cellSize}
-          fill="rgba(200,200,200,0.2)" // ✅ Light grey translucent grid
-          stroke="#aaa"
+          fill={isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(200,200,200,0.2)'}
+          stroke={isDarkMode ? '#555' : '#aaa'}
           strokeWidth="0.8"
         />
       );
@@ -110,9 +127,9 @@ const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPath
   }
 
   const areaColors = {
-    'Storage': '#007bff',
-    'Asset': '#ff9800',
-    'Service': '#4caf50'
+    'Storage': isDarkMode ? '#39FF14' : '#007bff',
+    'Asset': isDarkMode ? '#39FF14' : '#ff9800',
+    'Service': isDarkMode ? '#39FF14' : '#4caf50'
   };
 
   const trailCircles = trailPath.map((step, index) => {
@@ -124,8 +141,15 @@ const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPath
           cx={step.x + cellSize / 2}
           cy={step.y + cellSize / 2}
           r={6}
-          fill={isLastStep ? 'green' : (areaColors[step.label] || '#888')}
-          opacity={0.8}
+          fill={
+            isDarkMode
+              ? (isLastStep ? '#39FF14' : areaColors[step.label] || '#39FF14')
+              : (isLastStep ? '#6b7280' : areaColors[step.label] || '#6b7280')
+          }
+          opacity={0.9}
+          style={{
+            filter: isDarkMode ? 'drop-shadow(0 0 5px #39FF14)' : 'none'
+          }}
         />
         {isFirstStep && (
           <text
@@ -134,7 +158,7 @@ const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPath
             textAnchor="middle"
             fontFamily="Times New Roman"
             fontSize="13"
-            fill="#333"
+            fill={isDarkMode ? '#39FF14' : '#333'}
           >
             Start
           </text>
@@ -146,7 +170,7 @@ const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPath
             textAnchor="middle"
             fontFamily="Times New Roman"
             fontSize="13"
-            fill="green"
+            fill={isDarkMode ? '#39FF14' : '#6b7280'}
           >
             End
           </text>
@@ -164,12 +188,21 @@ const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPath
         y1={prev.y + cellSize / 2}
         x2={step.x + cellSize / 2}
         y2={step.y + cellSize / 2}
-        stroke="#444"
+        stroke={isDarkMode ? '#39FF14' : '#6b7280'}
         strokeWidth="2"
         strokeDasharray="4"
+        style={{
+          filter: isDarkMode ? 'drop-shadow(0 0 3px #39FF14)' : 'none'
+        }}
       />
     );
   });
+
+  const assetColors = {
+    'Forklifts': isDarkMode ? 'yellow' : 'yellow',
+    'Cranes': isDarkMode ? '#FFA500' : 'orange',
+    'Operators': isDarkMode ? '#00BFFF' : 'blue'
+  };
 
   const marker = showMarker && currentPos && (
     <>
@@ -177,15 +210,17 @@ const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPath
         cx={currentPos.x + cellSize / 2}
         cy={currentPos.y + cellSize / 2}
         r={isMobile ? 8 : 14}
-        fill={activeAsset === 'Forklifts' ? 'yellow' : activeAsset === 'Cranes' ? 'orange' : 'blue'}
-        stroke="#000"
+        fill={assetColors[activeAsset] || '#00FFFF'}
+        stroke={isDarkMode ? '#fff' : '#000'}
         strokeWidth="1"
+        style={{ filter: 'drop-shadow(0 0 5px #00FFFF)' }}
       />
       <text
         x={currentPos.x + cellSize / 2}
         y={currentPos.y + cellSize / 2 - 20}
         textAnchor="middle"
         className="tooltip"
+        fill={isDarkMode ? '#fff' : '#000'}
       >
         {activeAsset} Tracking
       </text>
@@ -193,23 +228,47 @@ const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPath
   );
 
   return (
-    <svg width="100%" height="100%" viewBox={`-60 -25 ${cols * cellSize + 120} ${rows * cellSize + 100}`}>
+    <svg
+      width="100%"
+      height="100%"
+      viewBox={`-60 -25 ${cols * cellSize + 120} ${rows * cellSize + 120}`}
+      style={{ backgroundColor: isDarkMode ? '#000000' : '#ffffff' }}
+    >
       {cells}
       {trailLines}
       {trailCircles}
       {marker}
-      <text x="-100" y="25" fontFamily="Times New Roman" fontSize="16" fill="#000">
+      <text
+        x="-100"
+        y="25"
+        fontFamily="Times New Roman"
+        fontSize="16"
+        fill={isDarkMode ? '#fff' : '#000'}
+      >
         Asset Area
       </text>
-      <text x="-110" y={rows * cellSize + 30} fontFamily="Times New Roman" fontSize="16" fill="#000">
+      <text
+        x="-110"
+        y={rows * cellSize + 30}
+        fontFamily="Times New Roman"
+        fontSize="16"
+        fill={isDarkMode ? '#fff' : '#000'}
+      >
         Storage Area
       </text>
-      <text x={cols * cellSize + 75} y={rows * cellSize + 30} fontFamily="Times New Roman" fontSize="16" fill="#000">
+      <text
+        x={cols * cellSize + 75}
+        y={rows * cellSize + 30}
+        fontFamily="Times New Roman"
+        fontSize="16"
+        fill={isDarkMode ? '#fff' : '#000'}
+      >
         Service Area
       </text>
     </svg>
   );
 };
+
 const Dashboard = () => {
   const [trailPath, setTrailPath] = useState([]);
   const [currentPos, setCurrentPos] = useState(null);
@@ -220,7 +279,12 @@ const Dashboard = () => {
   const [expandedId, setExpandedId] = useState(null);
   const [finalPathLength, setFinalPathLength] = useState(0);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const movementRef = useRef(null);
+
+  const toggleTheme = () => {
+    setIsDarkMode(prev => !prev);
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -235,63 +299,20 @@ const Dashboard = () => {
   const cellSize = isMobile ? 30 : 50;
 
   const predefinedPaths = {
-    '1': [
-      { x: 1 * cellSize, y: 1 * cellSize },
-      { x: 2 * cellSize, y: 1 * cellSize },
-      { x: 3 * cellSize, y: 2 * cellSize },
-      { x: 5 * cellSize, y: 2 * cellSize },
-      { x: 7 * cellSize, y: 3 * cellSize },
-      { x: 8 * cellSize, y: 5 * cellSize },
-      { x: 10 * cellSize, y: 7 * cellSize },
-      { x: 10 * cellSize, y: 10 * cellSize },
-    ],
-    '2': [
-      { x: 2 * cellSize, y: 2 * cellSize },
-      { x: 2 * cellSize, y: 4 * cellSize },
-      { x: 3 * cellSize, y: 6 * cellSize },
-      { x: 5 * cellSize, y: 7 * cellSize },
-      { x: 5 * cellSize, y: 9 * cellSize },
-      { x: 2 * cellSize, y: 9 * cellSize },
-      { x: 0 * cellSize, y: 10 * cellSize }
-      
-    ],
-    '3': [
-      { x: 0 * cellSize, y: 0 * cellSize },
-      { x: 3 * cellSize, y: 1 * cellSize },
-      { x: 3 * cellSize, y: 3 * cellSize },
-      { x: 4 * cellSize, y: 5 * cellSize },
-      { x: 6 * cellSize, y: 6 * cellSize },
-      { x: 9 * cellSize, y: 6 * cellSize },
-      { x: 10 * cellSize, y: 6 * cellSize },
-      { x: 10 * cellSize, y: 10 * cellSize },
-      { x: 7 * cellSize, y: 10 * cellSize },
-      { x: 0 * cellSize, y: 10 * cellSize },
-    ],
-    '4': [
-      { x: 10 * cellSize, y: 10 * cellSize },
-      { x: 8 * cellSize, y: 10 * cellSize },
-      { x: 6 * cellSize, y: 8 * cellSize },
-      { x: 5 * cellSize, y: 6 * cellSize },
-      { x: 5 * cellSize, y: 3 * cellSize },
-      { x: 3 * cellSize, y: 3 * cellSize },
-      { x: 3 * cellSize, y: 7 * cellSize },
-      { x: 0 * cellSize, y: 10 * cellSize },
-      { x: 0 * cellSize, y: 5 * cellSize },
-      { x: 0 * cellSize, y: 0 * cellSize },
-     
-    ]
+    '1': [ { x: 1 * cellSize, y: 1 * cellSize }, { x: 2 * cellSize, y: 1 * cellSize }, { x: 3 * cellSize, y: 2 * cellSize }, { x: 5 * cellSize, y: 2 * cellSize }, { x: 7 * cellSize, y: 3 * cellSize }, { x: 8 * cellSize, y: 5 * cellSize }, { x: 10 * cellSize, y: 7 * cellSize }, { x: 10 * cellSize, y: 10 * cellSize } ],
+    '2': [ { x: 2 * cellSize, y: 2 * cellSize }, { x: 2 * cellSize, y: 4 * cellSize }, { x: 3 * cellSize, y: 6 * cellSize }, { x: 5 * cellSize, y: 7 * cellSize }, { x: 5 * cellSize, y: 9 * cellSize }, { x: 2 * cellSize, y: 9 * cellSize }, { x: 0 * cellSize, y: 10 * cellSize } ],
+    '3': [ { x: 0 * cellSize, y: 0 * cellSize }, { x: 3 * cellSize, y: 1 * cellSize }, { x: 3 * cellSize, y: 3 * cellSize }, { x: 4 * cellSize, y: 5 * cellSize }, { x: 6 * cellSize, y: 6 * cellSize }, { x: 9 * cellSize, y: 6 * cellSize }, { x: 10 * cellSize, y: 6 * cellSize }, { x: 10 * cellSize, y: 10 * cellSize }, { x: 7 * cellSize, y: 10 * cellSize }, { x: 0 * cellSize, y: 10 * cellSize } ],
+    '4': [ { x: 10 * cellSize, y: 10 * cellSize }, { x: 8 * cellSize, y: 10 * cellSize }, { x: 6 * cellSize, y: 8 * cellSize }, { x: 5 * cellSize, y: 6 * cellSize }, { x: 5 * cellSize, y: 3 * cellSize }, { x: 3 * cellSize, y: 3 * cellSize }, { x: 3 * cellSize, y: 7 * cellSize }, { x: 0 * cellSize, y: 10 * cellSize }, { x: 0 * cellSize, y: 5 * cellSize }, { x: 0 * cellSize, y: 0 * cellSize } ]
   };
 
   const handleIdClick = (id) => {
     if (expandedId === id) {
-      // If already selected, clicking again will deselect
       setExpandedId(null);
       setTrailPath([]);
       setCurrentPos(null);
       clearInterval(movementRef.current);
       return;
     }
-  
     setExpandedId(id);
     clearInterval(movementRef.current);
     const path = predefinedPaths[id];
@@ -311,7 +332,6 @@ const Dashboard = () => {
       }
     }, 600);
   };
-  
 
   const handleAssetClick = (label) => {
     setActiveAsset(label);
@@ -321,24 +341,27 @@ const Dashboard = () => {
     setFinalPathLength(0);
   };
 
-  const handleButtonClick = (label) => {
-    setActiveButton(label);
-  };
-
-  const assetIds = ['1', '2', '3', '4'];
-  const getCurrentIds = () =>
-    ['Forklifts', 'Operators', 'Cranes'].includes(activeAsset) ? assetIds : [];
+  const handleButtonClick = (label) => setActiveButton(label);
+  const getCurrentIds = () => ['Forklifts', 'Operators', 'Cranes'].includes(activeAsset) ? ['1', '2', '3', '4'] : [];
 
   const buttonStyles = (label, defaultBg, defaultText, activeLabel) => ({
-    width: '110px', height: '36px', borderRadius: '15px',
-    border: activeLabel === label ? '2px solid #001f3f' : '1px solid #cbd5e1',
-    backgroundColor: activeLabel === label ? '#001f3f' : defaultBg,
+    width: '110px',
+    height: '36px',
+    borderRadius: '15px',
+    border: activeLabel === label 
+      ? (isDarkMode ? '2px solid #39FF14' : '2px solid #001f3f') 
+      : '1px solid #cbd5e1',
+    backgroundColor: activeLabel === label ? (isDarkMode ? '#000' : '#001f3f') : defaultBg,
     fontFamily: 'Times New Roman',
     fontSize: '16px',
-    color: activeLabel === label ? '#ffffff' : defaultText,
+    color: activeLabel === label 
+      ? (isDarkMode ? '#39FF14' : '#ffffff') 
+      : (isDarkMode ? '#ffffff' : defaultText),
     cursor: 'pointer',
     fontWeight: activeLabel === label ? 'bold' : 'normal',
-    boxShadow: activeLabel === label ? '0 4px 10px rgba(0, 0, 0, 0.2)' : '0 2px 6px rgba(0,0,0,0.08)',
+    boxShadow: activeLabel === label 
+      ? (isDarkMode ? '0 0 12px #39FF14' : 'none') 
+      : '0 2px 6px rgba(0,0,0,0.08)',
     transform: activeLabel === label ? 'translateY(-2px)' : 'translateY(0)',
     transition: 'all 0.2s ease-in-out'
   });
@@ -346,20 +369,25 @@ const Dashboard = () => {
   return (
     <>
       <style>{styles}</style>
-      <div style={{
-        display: 'flex',
-        flexDirection: isMobile ? 'column' : 'row',
-        width: '100vw',
-        height: '100vh',
-        overflow: 'hidden',
-        position: 'relative',
-        backgroundColor: '#ffffff'
-      }}>
+      <div
+        className={isDarkMode ? 'dark-mode' : ''}
+        style={{
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          width: '100vw',
+          height: '100vh',
+          overflow: 'hidden',
+          position: 'relative',
+          backgroundColor: isDarkMode ? 'black' : 'black'
+        }}
+      >
+       
         {/* Left Panel */}
         <div style={{
           flex: panelOpen ? 2 : 1,
           padding: isMobile ? '10px 15px' : '30px',
-          backgroundColor: '#f8fafc',
+          backgroundColor: isDarkMode ? '#0a0a0a' : '#f8fafc',
+          color: isDarkMode ? '#fff' : '#000',
           display: 'flex',
           flexDirection: 'column',
           height: isMobile ? 'auto' : '100%',
@@ -367,14 +395,56 @@ const Dashboard = () => {
           top: 0,
           zIndex: 3
         }}>
-          <div style={{ fontSize: isMobile ? '22px' : '25px', fontWeight: 'bold', fontFamily: 'Times New Roman', color: '#1e293b', marginBottom: '5px', textAlign: isMobile ? 'center' : 'left' }}>
-            Real-Time Location Tracker
-          </div>
-          <h3 style={{ fontFamily: 'Times New Roman', fontSize: isMobile ? '18px' : '20px', margin: 0, color: '#64748b', textAlign: isMobile ? 'center' : 'left' }}>Warehouse</h3>
+        <div style={{
+  display: 'flex',
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  flexWrap: isMobile ? 'wrap' : 'nowrap',
+  gap: '10px',
+  marginBottom: '10px'
+}}>
+  {/* Title */}
+  <div style={{
+    fontSize: isMobile ? '22px' : '25px',
+    fontWeight: 'bold',
+    fontFamily: 'Times New Roman',
+    color: isDarkMode ? '#39FF14' : '#1e293b',
+    flex: 1,
+    minWidth: '200px'
+  }}>
+    Real-Time Location Tracker
+  </div>
+   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+    {/* Dark Mode Toggle Icon */}
+    <div
+      onClick={toggleTheme}
+      style={{
+        width: '38px',
+        height: '38px',
+        borderRadius: '50%',
+        backgroundColor: isDarkMode ? '#1a1a1a' : '#f1f5f9',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        cursor: 'pointer'
+      }}
+    >
+      {isDarkMode ? (
+        <FaSun size={18} color="#ffcc00" />
+      ) : (
+        <FaMoon size={18} color="#334155" />
+      )}
+    </div>
+  </div>
+</div>
+
+          <h3 style={{ fontFamily: 'Times New Roman', fontSize: isMobile ? '18px' : '20px', margin: 0, color: isDarkMode ? '#ccc' : '#64748b', textAlign: isMobile ? 'center' : 'left' }}>Warehouse</h3>
 
           <div style={{
             height: isMobile ? '48vh' : '75vh',
-            backgroundColor: '#fff',
+            backgroundColor: isDarkMode ? '#111' : '#fff',
             border: '1px solid #000',
             borderRadius: '5px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
@@ -392,99 +462,201 @@ const Dashboard = () => {
               showMarker={expandedId !== null}
               finalPathLength={finalPathLength}
               isMobile={isMobile}
+              isDarkMode={isDarkMode}
             />
           </div>
+          {/* Legend below the map holder horizontally placed */}
+<div style={{
+  marginTop: 12,
+  display: 'flex',
+  justifyContent: 'center',
+  gap: 25,
+  alignItems: 'center',
+  fontFamily: 'Times New Roman',
+  fontSize: 14,
+  color: isDarkMode ? '#39FF14' : '#001f3f',
+  userSelect: 'none'
+}}>
+  {/* Small colored dots with labels */}
+  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+    <span style={{
+      display: 'inline-block',
+      width: 12,
+      height: 12,
+      borderRadius: '50%',
+      backgroundColor: 'yellow',
+      boxShadow: isDarkMode ? '0 0 6px yellow' : 'none'
+    }}></span>
+    Forklifts
+  </div>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+    <span style={{
+      display: 'inline-block',
+      width: 12,
+      height: 12,
+      borderRadius: '50%',
+      backgroundColor: 'orange',
+      boxShadow: isDarkMode ? '0 0 6px orange' : 'none'
+    }}></span>
+    Cranes
+  </div>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+    <span style={{
+      display: 'inline-block',
+      width: 12,
+      height: 12,
+      borderRadius: '50%',
+      backgroundColor: 'blue',
+      boxShadow: isDarkMode ? '0 0 6px deepskyblue' : 'none'
+    }}></span>
+    Operators
+  </div>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+    <span style={{
+      display: 'inline-block',
+      width: 8,
+      height: 8,
+      borderRadius: '50%',
+      backgroundColor: isDarkMode ? '#39FF14' : '#6b7280',
+      opacity: 0.8
+    }}></span>
+    Path Trail 
+  </div>
+</div>
 
-          <div style={{
-            backgroundColor: '#f1f5f9',
-            borderRadius: '15px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
-            padding: '12px 18px',
-            marginBottom: '15px',
-            display: 'flex',
-            justifyContent: isMobile ? 'center' : 'space-around',
-            alignItems: 'center',
-            flexWrap: isMobile ? 'wrap' : 'nowrap',
-            fontFamily: 'Times New Roman',
-            fontSize: '15px',
-            gap: isMobile ? '12px' : '0',
-            color: '#1e293b'
-          }}>
-            {[
-              { color: 'yellow', label: 'Forklift' },
-              { color: 'blue', label: 'Operator' },
-              { color: 'orange', label: 'Crane' },
-              { color: 'green', label: 'Destination' },
-              { color: '#888888', label: 'Work' }
-            ].map((item, index) => (
-              <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{
-                  width: '14px', height: '14px', borderRadius: '50%',
-                  backgroundColor: item.color, border: '1px solid #000'
-                }}></div>
-                <span>{item.label}</span>
-              </div>
-            ))}
-          </div>
+
+          
         </div>
-
-        {/* Right Panel */}
+                {/* Right Panel */}
         {panelOpen && (
-          <div style={{
-            width: isMobile ? '100%' : '420px',
-            height: isMobile ? 'auto' : '100vh',
-            backgroundColor: '#ffffff',
-            boxShadow: '0 0 12px rgba(0,0,0,0.08)',
-            padding: isMobile ? '20px' : '30px 25px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '25px',
-            overflowY: isMobile ? 'scroll' : 'auto'
-          }} className="scroll-panel">
+          <div
+            style={{
+              width: isMobile ? '100%' : '420px',
+              height: isMobile ? 'auto' : '100vh',
+              backgroundColor: isDarkMode ? '#0a0a0a' : '#ffffff',
+              boxShadow: '0 0 12px rgba(0,0,0,0.08)',
+              padding: isMobile ? '20px' : '30px 25px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '25px',
+              overflowY: isMobile ? 'scroll' : 'auto',
+              color: isDarkMode ? '#ffffff' : '#1e293b'
+            }}
+            className="scroll-panel"
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-              <div onClick={() => setPanelOpen(false)} style={{ width: '45px', height: '45px', borderRadius: '50%', backgroundColor: '#f1f5f9', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.06)', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }}>
-                <GiHamburgerMenu size={20} color="#1e293b" />
+              <div
+                onClick={() => setPanelOpen(false)}
+                style={{
+                  width: '45px',
+                  height: '45px',
+                  borderRadius: '50%',
+                  backgroundColor: isDarkMode ? '#1a1a1a' : '#f1f5f9',
+                  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.06)',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                <GiHamburgerMenu size={20} color={isDarkMode ? '#39FF14' : '#1e293b'} />
               </div>
               <div className="toggle-btns" style={{ flexGrow: 1 }}>
-                <button className={activeToggle === 'Live Tracking' ? 'active' : ''} onClick={() => setActiveToggle('Live Tracking')}>Live Tracking</button>
-                <button className={activeToggle === 'Heat Map' ? 'active' : ''} onClick={() => setActiveToggle('Heat Map')}>Heat Map</button>
-              </div>
+  <button
+    className={activeToggle === 'Live Tracking' ? 'active' : ''}
+    onClick={() => setActiveToggle('Live Tracking')}
+    style={{
+      backgroundColor: activeToggle === 'Live Tracking' ? (isDarkMode ? '#000' : '#001f3f') : 'transparent',
+      color: activeToggle === 'Live Tracking' ? (isDarkMode ? '#39FF14' : '#ffffff') : (isDarkMode ? '#ffffff' : '#334155'),
+      fontWeight: activeToggle === 'Live Tracking' ? 'bold' : 'normal',
+      border: activeToggle === 'Live Tracking' ? (isDarkMode ? '2px solid #39FF14' : 'none') : 'none',
+      borderRadius: '12px',
+      padding: '10px 0',
+      fontFamily: 'Times New Roman',
+      fontSize: '16px',
+      cursor: 'pointer',
+      boxShadow: activeToggle === 'Live Tracking' && isDarkMode ? '0 0 8px #39FF14' : 'none',
+      flex: 1
+    }}
+  >
+    Live Tracking
+  </button>
+  <button
+    className={activeToggle === 'Heat Map' ? 'active' : ''}
+    onClick={() => setActiveToggle('Heat Map')}
+    style={{
+      backgroundColor: activeToggle === 'Heat Map' ? (isDarkMode ? '#000' : '#001f3f') : 'transparent',
+      color: activeToggle === 'Heat Map' ? (isDarkMode ? '#39FF14' : '#ffffff') : (isDarkMode ? '#ffffff' : '#334155'),
+      fontWeight: activeToggle === 'Heat Map' ? 'bold' : 'normal',
+      border: activeToggle === 'Heat Map' ? (isDarkMode ? '2px solid #39FF14' : 'none') : 'none',
+      borderRadius: '12px',
+      padding: '10px 0',
+      fontFamily: 'Times New Roman',
+      fontSize: '16px',
+      cursor: 'pointer',
+      boxShadow: activeToggle === 'Heat Map' && isDarkMode ? '0 0 8px #39FF14' : 'none',
+      flex: 1
+    }}
+  >
+    Heat Map
+  </button>
+</div>
+
+
             </div>
 
-            <div style={{ backgroundColor: '#f1f5f9', borderRadius: '15px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)', padding: '20px' }}>
+            <div style={{ backgroundColor: isDarkMode ? '#1a1a1a' : '#f1f5f9', borderRadius: '15px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)', padding: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                <MdAccessTime size={18} color="#001f3f" />
-                <span style={{ fontFamily: 'Times New Roman', fontSize: '18px', color: '#1e293b' }}>Time Range</span>
+                <MdAccessTime size={18} color={isDarkMode ? '#39FF14' : '#001f3f'} />
+                <span style={{ fontFamily: 'Times New Roman', fontSize: '18px', color: isDarkMode ? '#39FF14' : '#1e293b' }}>Time Range</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
                 {['1 Hour', '1 Day', '1 Week'].map(label => (
-                  <button key={label} style={buttonStyles(label, '#e2e8f0', '#1e293b', activeButton)} onClick={() => handleButtonClick(label)}>{label}</button>
+                  <button
+                    key={label}
+                    style={buttonStyles(label, isDarkMode ? '#111' : '#e2e8f0', isDarkMode ? '#ffffff' : '#1e293b', activeButton)}
+                    onClick={() => handleButtonClick(label)}
+                  >
+                    {label}
+                  </button>
                 ))}
               </div>
             </div>
 
-            <div style={{ backgroundColor: '#f1f5f9', borderRadius: '15px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)', padding: '20px' }}>
+            <div style={{ backgroundColor: isDarkMode ? '#1a1a1a' : '#f1f5f9', borderRadius: '15px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)', padding: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                <FaRobot size={18} color="#001f3f" />
-                <span style={{ fontFamily: 'Times New Roman', fontSize: '18px', color: '#1e293b' }}>Asset Type</span>
+                <FaRobot size={18} color={isDarkMode ? '#39FF14' : '#001f3f'} />
+                <span style={{ fontFamily: 'Times New Roman', fontSize: '18px', color: isDarkMode ? '#39FF14' : '#1e293b' }}>Asset Type</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginBottom: '15px', flexWrap: 'wrap' }}>
                 {['Forklifts', 'Operators', 'Cranes'].map(label => (
-                  <button key={label} style={buttonStyles(label, '#e2e8f0', '#1e293b', activeAsset)} onClick={() => handleAssetClick(label)}>{label}</button>
+                  <button
+                    key={label}
+                    style={buttonStyles(label, isDarkMode ? '#111' : '#e2e8f0', isDarkMode ? '#ffffff' : '#1e293b', activeAsset)}
+                    onClick={() => handleAssetClick(label)}
+                  >
+                    {label}
+                  </button>
                 ))}
               </div>
               <div style={{ height: '2px', backgroundColor: '#cbd5e1', marginBottom: '10px' }}></div>
               {getCurrentIds().map(id => (
                 <div key={id} style={{ marginBottom: '10px' }}>
-                  <div style={{
-                    padding: '10px', fontSize: '16px', fontFamily: 'Times New Roman',
-                    color: expandedId === id ? '#001f3f' : '#1e293b',
-                    fontWeight: expandedId === id ? 'bold' : 'normal',
-                    cursor: 'pointer',
-                    borderRadius: '10px',
-                    backgroundColor: expandedId === id ? '#e0f2fe' : 'transparent',
-                    transition: 'all 0.3s ease'
-                  }} onClick={() => handleIdClick(id)}>
+                  <div
+                    style={{
+                      padding: '10px',
+                      fontSize: '16px',
+                      fontFamily: 'Times New Roman',
+                      color: expandedId === id ? (isDarkMode ? '#39FF14' : '#001f3f') : (isDarkMode ? '#ffffff' : '#1e293b'),
+                      fontWeight: expandedId === id ? 'bold' : 'normal',
+                      cursor: 'pointer',
+                      borderRadius: '10px',
+                      backgroundColor: expandedId === id ? (isDarkMode ? '#002800' : '#e0f2fe') : 'transparent',
+                      transition: 'all 0.3s ease',
+                      boxShadow: expandedId === id && isDarkMode ? '0 0 10px #39FF14' : 'none'
+                    }}
+                    onClick={() => handleIdClick(id)}
+                  >
                     {activeAsset === 'Forklifts' ? `ForkliftID : #${id}` : activeAsset === 'Cranes' ? `CraneID : #${id}` : `OperatorID : #${id}`}
                   </div>
                 </div>
@@ -493,15 +665,27 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Hamburger to reopen */}
+        {/* Hamburger Reopen */}
         {!panelOpen && (
-          <div onClick={() => setPanelOpen(true)} style={{
-            position: 'absolute', top: '30px', right: '20px', width: '45px', height: '45px',
-            borderRadius: '50%', backgroundColor: '#f1f5f9',
-            boxShadow: '0 4px 8px rgba(0,0,0,0.08)', display: 'flex',
-            justifyContent: 'center', alignItems: 'center', cursor: 'pointer', zIndex: 20
-          }}>
-            <GiHamburgerMenu size={20} color="#1e293b" />
+          <div
+            onClick={() => setPanelOpen(true)}
+            style={{
+              position: 'absolute',
+              top: '30px',
+              right: '20px',
+              width: '45px',
+              height: '45px',
+              borderRadius: '50%',
+              backgroundColor: isDarkMode ? '#1a1a1a' : '#f1f5f9',
+              boxShadow: '0 4px 8px rgba(0,0,0,0.08)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              cursor: 'pointer',
+              zIndex: 20
+            }}
+          >
+            <GiHamburgerMenu size={20} color={isDarkMode ? '#39FF14' : '#1e293b'} />
           </div>
         )}
       </div>
