@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BiArrowBack } from "react-icons/bi";
+import { Link } from 'react-router-dom';
 import { MdAccessTime } from "react-icons/md";
 import { FaRobot } from "react-icons/fa";
 import { GiHamburgerMenu } from "react-icons/gi";
 import { FaMoon, FaSun } from "react-icons/fa";
+import { FaTruck, FaUserCog } from 'react-icons/fa';      // Forklift & Operator
+import { GiCargoCrane } from "react-icons/gi"; 
+import { LiaLuggageCartSolid } from "react-icons/lia";             
+
 
 
 const styles = `
@@ -102,6 +106,15 @@ const styles = `
   }
 }
 `;
+
+const assetIcons = {
+  'Forklifts': FaTruck,
+  'Cranes': GiCargoCrane,
+  'Operators': FaUserCog,
+  'carts' : LiaLuggageCartSolid
+};
+
+
 
 const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPathLength, isMobile, isDarkMode }) => {
   const rows = 10;
@@ -204,45 +217,175 @@ const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPath
     'Operators': isDarkMode ? '#00BFFF' : 'blue'
   };
 
-  const marker = showMarker && currentPos && (
-    <>
-      <circle
-        cx={currentPos.x + cellSize / 2}
-        cy={currentPos.y + cellSize / 2}
-        r={isMobile ? 8 : 14}
-        fill={assetColors[activeAsset] || '#00FFFF'}
-        stroke={isDarkMode ? '#fff' : '#000'}
-        strokeWidth="1"
-        style={{ filter: 'drop-shadow(0 0 5px #00FFFF)' }}
-      />
-      <text
-        x={currentPos.x + cellSize / 2}
-        y={currentPos.y + cellSize / 2 - 20}
-        textAnchor="middle"
-        className="tooltip"
-        fill={isDarkMode ? '#fff' : '#000'}
-      >
-        {activeAsset} Tracking
-      </text>
-    </>
-  );
+  const MarkerIcon = assetIcons[activeAsset];
 
+const marker = showMarker && currentPos && MarkerIcon && (
+  <>
+    <foreignObject
+      x={currentPos.x + cellSize / 2 - 15}
+      y={currentPos.y + cellSize / 2 - 15}
+      width={30}
+      height={30}
+    >
+      <div className="icon-jump" style={{ width: '100%', height: '100%' }}>
+        <MarkerIcon
+          size={isMobile ? 18 : 24}
+          color={isDarkMode ? '#39FF14' : '#001f3f'}
+          style={{
+            filter: isDarkMode ? 'drop-shadow(0 0 4px #39FF14)' : 'none',
+            width: '100%',
+            height: '100%'
+          }}
+        />
+      </div>
+    </foreignObject>
+
+    <text
+      x={currentPos.x + cellSize / 2}
+      y={currentPos.y + cellSize / 2 - 25}
+      textAnchor="middle"
+      className="tooltip"
+      fill={isDarkMode ? '#fff' : '#000'}
+    >
+      {activeAsset} Tracking
+    </text>
+  </>
+);
+
+  
   return (
     <svg
       width="100%"
       height="100%"
-      viewBox={`-60 -25 ${cols * cellSize + 120} ${rows * cellSize + 120}`}
+      viewBox={isMobile 
+        ? `-30 -30 ${cols * cellSize + 80} ${rows * cellSize + 100}` 
+        : `-60 -25 ${cols * cellSize + 120} ${rows * cellSize + 120}`}      
       style={{ backgroundColor: isDarkMode ? '#000000' : '#ffffff' }}
     >
+          {/* Highlighted Area Blocks */}
+    <rect
+      x={0 * cellSize}
+      y={0 * cellSize}
+      width={3 * cellSize}
+      height={3 * cellSize}
+      fill="limegreen"
+      opacity="0.25"
+    />
+    <rect
+      x={0 * cellSize}
+      y={7 * cellSize}
+      width={5 * cellSize}
+      height={4 * cellSize}
+      fill="skyblue"
+      opacity="0.25"
+    />
+    <rect
+      x={7 * cellSize}
+      y={7 * cellSize}
+      width={4 * cellSize}
+      height={4 * cellSize}
+      fill="orange"
+      opacity="0.25"
+    />
+
       {cells}
       {trailLines}
       {trailCircles}
       {marker}
+
+      {cells}
+{trailLines}
+{trailCircles}
+{marker}
+
+{/* Highlighted Area Blocks */}
+<rect x={0 * cellSize} y={0 * cellSize} width={3 * cellSize} height={3 * cellSize} fill="limegreen" opacity="0.25" />
+<rect x={0 * cellSize} y={7 * cellSize} width={5 * cellSize} height={4 * cellSize} fill="skyblue" opacity="0.25" />
+<rect x={7 * cellSize} y={7 * cellSize} width={4 * cellSize} height={4 * cellSize} fill="orange" opacity="0.25" />
+
+{/* Office on top-right corner of 3x3 area */}
+<rect x={8 * cellSize} y={0 * cellSize} width={3 * cellSize} height={2 * cellSize} fill="#555" opacity="0.3" />
+<text x={10.5 * cellSize} y={0.8 * cellSize} fontSize="12" fill={isDarkMode ? "#39FF14" : "#000"} textAnchor="middle">Office</text>
+
+{/* Racks */}
+<rect x={3 * cellSize} y={10.5 * cellSize} width={cellSize} height={cellSize / 4} fill="brown" />
+<rect x={2 * cellSize} y={10 * cellSize} width={cellSize} height={cellSize / 4} fill="brown" />
+<rect x={1 * cellSize} y={10.5 * cellSize} width={cellSize} height={cellSize / 4} fill="brown" />
+<rect x={0 * cellSize} y={10 * cellSize} width={cellSize} height={cellSize / 4} fill="brown" />
+<rect x={3 * cellSize} y={7.5 * cellSize} width={cellSize} height={cellSize / 4} fill="brown" />
+<rect x={2 * cellSize} y={8 * cellSize} width={cellSize} height={cellSize / 4} fill="brown" />
+<rect x={1 * cellSize} y={7.5 * cellSize} width={cellSize} height={cellSize / 4} fill="brown" />
+<rect x={0 * cellSize} y={8 * cellSize} width={cellSize} height={cellSize / 4} fill="brown" />
+<text x={1.25 * cellSize} y={9.7 * cellSize} fontSize="10" fill={isDarkMode ? "#39FF14" : "#000"}>Racks</text>
+
+{/* Forklifts */}
+<foreignObject x={0 * cellSize + 10} y={0 * cellSize + 10} width={24} height={24}>
+  <div style={{ width: '100%', height: '100%' }}>
+    <LiaLuggageCartSolid size={20} color="black" />
+  </div>
+</foreignObject>
+<foreignObject x={1 * cellSize + 10} y={0 * cellSize + 10} width={24} height={24}>
+  <div style={{ width: '100%', height: '100%' }}>
+    <LiaLuggageCartSolid size={20} color="black" />
+  </div>
+</foreignObject>
+<foreignObject x={2 * cellSize + 10} y={0 * cellSize + 10} width={24} height={24}>
+  <div style={{ width: '100%', height: '100%' }}>
+    <LiaLuggageCartSolid size={20} color="black" />
+  </div>
+</foreignObject>
+<foreignObject x={0 * cellSize + 10} y={2 * cellSize + 10} width={24} height={24}>
+  <div style={{ width: '100%', height: '100%' }}>
+    <FaTruck size={20} color="black" />
+  </div>
+</foreignObject>
+<foreignObject x={1 * cellSize + 10} y={2 * cellSize + 10} width={24} height={24}>
+  <div style={{ width: '100%', height: '100%' }}>
+    <FaTruck size={20} color="black" />
+  </div>
+</foreignObject>
+<foreignObject x={0 * cellSize + 10} y={1 * cellSize + 10} width={24} height={24}>
+  <div style={{ width: '100%', height: '100%' }}>
+    <FaTruck size={20} color="black" />
+  </div>
+</foreignObject>
+
+{/* Cranes */}
+<foreignObject x={8 * cellSize + 10} y={8 * cellSize + 10} width={24} height={24}>
+  <div style={{ width: '100%', height: '100%' }}>
+    <GiCargoCrane size={20} color="black" />
+  </div>
+</foreignObject>
+<foreignObject x={8 * cellSize + 10} y={10 * cellSize + 10} width={24} height={24}>
+  <div style={{ width: '100%', height: '100%' }}>
+    <GiCargoCrane size={20} color="black" />
+  </div>
+</foreignObject>
+<foreignObject x={9 * cellSize + 10} y={7 * cellSize + 10} width={24} height={24}>
+  <div style={{ width: '100%', height: '100%' }}>
+    <GiCargoCrane size={20} color="black" />
+  </div>
+</foreignObject>
+<foreignObject x={9 * cellSize + 10} y={9 * cellSize + 10} width={24} height={24}>
+  <div style={{ width: '100%', height: '100%' }}>
+    <GiCargoCrane size={20} color="black" />
+  </div>
+</foreignObject>
+
+{/* Boxes */}
+<rect x={3 * cellSize + 10} y={7 * cellSize + 10} width="15" height="15" fill="#A6744A" />
+<rect x={3.4 * cellSize + 10} y={6.8 * cellSize + 20} width="15" height="15" fill="#A6744A" />
+<rect x={2 * cellSize + 10} y={7.5 * cellSize + 10} width="15" height="15" fill="#A6744A" />
+<rect x={2.4 * cellSize + 10} y={7.5 * cellSize + 10} width="15" height="15" fill="#A6744A" />
+<rect x={1 * cellSize + 10} y={10 * cellSize + 10} width="15" height="15" fill="#A6744A" />
+<rect x={1.4 * cellSize + 10} y={10 * cellSize + 10} width="15" height="15" fill="#A6744A" />
+<text x={3.25 * cellSize} y={7 * cellSize + 5} fontSize="10" fill={isDarkMode ? "#39FF14" : "#000"}>Boxes</text>
+
       <text
         x="-100"
         y="25"
         fontFamily="Times New Roman"
-        fontSize="16"
+        fontSize={isMobile ? '12' : '16'}
         fill={isDarkMode ? '#fff' : '#000'}
       >
         Asset Area
@@ -251,7 +394,8 @@ const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPath
         x="-110"
         y={rows * cellSize + 30}
         fontFamily="Times New Roman"
-        fontSize="16"
+        fontSize={isMobile ? '12' : '16'}
+
         fill={isDarkMode ? '#fff' : '#000'}
       >
         Storage Area
@@ -260,7 +404,8 @@ const AssetLayout = ({ activeAsset, trailPath, currentPos, showMarker, finalPath
         x={cols * cellSize + 75}
         y={rows * cellSize + 30}
         fontFamily="Times New Roman"
-        fontSize="16"
+        fontSize={isMobile ? '12' : '16'}
+
         fill={isDarkMode ? '#fff' : '#000'}
       >
         Service Area
@@ -395,15 +540,17 @@ const Dashboard = () => {
           top: 0,
           zIndex: 3
         }}>
-        <div style={{
+       <div style={{
   display: 'flex',
   flexDirection: 'row',
   justifyContent: 'space-between',
-  alignItems: 'center',
+  alignItems: isMobile ? 'center' : 'stretch',
+  textAlign: isMobile ? 'center' : 'left',
   flexWrap: isMobile ? 'wrap' : 'nowrap',
   gap: '10px',
   marginBottom: '10px'
 }}>
+
   {/* Title */}
   <div style={{
     fontSize: isMobile ? '22px' : '25px',
@@ -415,7 +562,8 @@ const Dashboard = () => {
   }}>
     Real-Time Location Tracker
   </div>
-   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0, flexWrap: 'nowrap' }}>
+
     {/* Dark Mode Toggle Icon */}
     <div
       onClick={toggleTheme}
@@ -465,6 +613,8 @@ const Dashboard = () => {
               isDarkMode={isDarkMode}
             />
           </div>
+
+          
           {/* Legend below the map holder horizontally placed */}
 <div style={{
   marginTop: 12,
@@ -531,7 +681,9 @@ const Dashboard = () => {
         {panelOpen && (
           <div
             style={{
-              width: isMobile ? '100%' : '420px',
+              width: isMobile ? '95%' : '420px',
+              maxWidth: '100%',
+              margin: isMobile ? '0 auto' : '0',
               height: isMobile ? 'auto' : '100vh',
               backgroundColor: isDarkMode ? '#0a0a0a' : '#ffffff',
               boxShadow: '0 0 12px rgba(0,0,0,0.08)',
@@ -561,7 +713,7 @@ const Dashboard = () => {
               >
                 <GiHamburgerMenu size={20} color={isDarkMode ? '#39FF14' : '#1e293b'} />
               </div>
-              <div className="toggle-btns" style={{ flexGrow: 1 }}>
+              <Link to="/dashboard" style={{ flex: 1 }}>
   <button
     className={activeToggle === 'Live Tracking' ? 'active' : ''}
     onClick={() => setActiveToggle('Live Tracking')}
@@ -576,11 +728,14 @@ const Dashboard = () => {
       fontSize: '16px',
       cursor: 'pointer',
       boxShadow: activeToggle === 'Live Tracking' && isDarkMode ? '0 0 8px #39FF14' : 'none',
-      flex: 1
+      width: '100%'
     }}
   >
     Live Tracking
   </button>
+</Link>
+
+<Link to="/heatmap" style={{ flex: 1 }}>
   <button
     className={activeToggle === 'Heat Map' ? 'active' : ''}
     onClick={() => setActiveToggle('Heat Map')}
@@ -595,12 +750,12 @@ const Dashboard = () => {
       fontSize: '16px',
       cursor: 'pointer',
       boxShadow: activeToggle === 'Heat Map' && isDarkMode ? '0 0 8px #39FF14' : 'none',
-      flex: 1
+      width: '100%'
     }}
   >
     Heat Map
   </button>
-</div>
+</Link>
 
 
             </div>

@@ -1,11 +1,22 @@
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
-import Sidebar from './components/Sidebar';
-
+import HeatMap from './components/heatmap'; // ✅ Capital H — case sensitive
 
 const App: React.FC = () => {
   return (
-    <Dashboard />
+    <Router>
+      <Routes>
+        {/* Default route redirects to dashboard */}
+        <Route path="/" element={<Navigate to="/dashboard" />} />
+        
+        {/* Dashboard route */}
+        <Route path="/dashboard" element={<Dashboard />} />
+
+        {/* Heatmap route */}
+        <Route path="/heatmap" element={<HeatMap />} />
+      </Routes>
+    </Router>
   );
 };
 
