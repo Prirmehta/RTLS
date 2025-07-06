@@ -23,7 +23,7 @@ import { RiSpeedUpFill } from "react-icons/ri";
 import { Link, useLocation } from 'react-router-dom';
 
 const LiveTrailDashboard = () => {
- 
+  // ... keep existing code (all state variables and refs)
   const [view, setView] = useState('live');
   const location = useLocation();
 
@@ -34,21 +34,20 @@ const LiveTrailDashboard = () => {
   const [speed, setSpeed] = useState(1);
   const [trailTime, setTrailTime] = useState(0);
   const [timeRange, setTimeRange] = useState('1 Hour');
-  const [scale, setScale] = useState(1.2); // Default zoom out a little
+  const [scale, setScale] = useState(1); // Default zoom out a little
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showMidPanel, setShowMidPanel] = useState(false);
   const [midPanelAsset, setMidPanelAsset] = useState(null);
   const intervalRef = useRef(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [scale, setScale] = useState(1);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [allAssetsPaths, setAllAssetsPaths] = useState({});
   const [checkedAssetsPaths, setCheckedAssetsPaths] = useState({});
   const [trailPath, setTrailPath] = useState([]);
 
- 
+  // ... keep existing code (theme configuration and all utility functions)
   const theme = {
     background: darkMode ? '#1A1A1A' : '#f9f9f9',
     cardBackground: darkMode ? '#1A1A1A' : '#ffffff',
@@ -246,6 +245,7 @@ const LiveTrailDashboard = () => {
     }
   };
 
+  // ... keep existing code (useEffect hooks)
   useEffect(() => {
     setTrailPath(generateRandomPath());
   }, []);
@@ -398,8 +398,7 @@ const LiveTrailDashboard = () => {
       left: isFullScreen ? 0 : 'auto',
       zIndex: isFullScreen ? 9999 : 'auto',
     }}>
-     
-
+      {/* ... keep existing code (header section) */}
       <div style={{
         textAlign: 'left',
         padding: '4px 20px',
@@ -477,7 +476,6 @@ const LiveTrailDashboard = () => {
       </div>
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-
         {/* Left Panel */}
         <div style={{
           flexBasis: isFullScreen ? '100%' : '75%',
@@ -587,7 +585,7 @@ const LiveTrailDashboard = () => {
               position: 'relative'
             }}>
               <svg width="100%" height="100%">
-                
+                {/* ... keep existing code (ROOM ZONES section) */}
                 <rect x="20" y="20" width="150" height="150" fill={darkMode ? "#1a2332" : "#e6f2ff"} stroke={darkMode ? "#3d5a80" : "#005cbf"} strokeDasharray="6" strokeWidth="1.5" />
                 <text x="90" y="95" fill={darkMode ? "#ffffff" : "#003366"} fontSize="12" textAnchor="middle">Asset Area</text>
 
@@ -612,7 +610,7 @@ const LiveTrailDashboard = () => {
                 <rect x="20" y="330" width="90" height="140" fill={darkMode ? "#1a2e2e" : "#e0f7fa"} stroke={darkMode ? "#26c6da" : "#00838f"} strokeDasharray="6" strokeWidth="1.5" />
                 <text x="60" y="410" fill={darkMode ? "#ffffff" : "#006064"} fontSize="12" textAnchor="middle">Canteen</text>
 
-       
+                {/* ... keep existing code (ASSET TRAILS section) */}
                 {assetType === 'All Assets'
                   ? Object.entries(allAssetsPaths).map(([id, path]) =>
                       path.slice(0, currentIndex + 1).map((p, i) =>
@@ -746,7 +744,7 @@ const LiveTrailDashboard = () => {
               </svg>
             </div>
 
-         
+            {/* ... keep existing code (LEGEND section) */}
             <div style={{
               position: 'absolute',
               bottom: 20,
@@ -778,7 +776,7 @@ const LiveTrailDashboard = () => {
           </div>
         </div>
 
-   
+        {/* ... keep existing code (Mid Panel and Right Panel sections) */}
 {/* Mid Panel */}
 {showMidPanel && !isFullScreen && (
   <div style={{

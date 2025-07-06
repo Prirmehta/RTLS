@@ -1,13 +1,13 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
-import HeatMap from './components/WarehouseHeatmap'; // ✅ Capital H — case sensitive
+import HeatMap from './components/WarehouseHeatmap'; 
 
 const App: React.FC = () => {
   return (
     <Router>
       <Routes>
-        {/* Default route redirects to dashboard */}
+       
         <Route path="/" element={<Navigate to="/dashboard" />} />
         
         {/* Dashboard route */}
