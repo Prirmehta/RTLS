@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
-import HeatMap from './components/heatmap'; // ✅ Capital H — case sensitive
+import HeatMap from './components/WarehouseHeatmap'; // ✅ Capital H — case sensitive
 
 const App: React.FC = () => {
   return (
