@@ -13,6 +13,10 @@ import {
 } from 'react-icons/fa';
 import { AiOutlineHeatMap } from "react-icons/ai";
 import { Link, useLocation } from 'react-router-dom';
+import { IoSunny } from "react-icons/io5";
+import { HiMoon } from "react-icons/hi2";
+
+
 
 
 const assetMap = {
@@ -60,14 +64,41 @@ const WarehouseHeatmap = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [scale, setScale] = useState(0.9); // Default zoom out a little
+  const [scale, setScale] = useState(0.9);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [selectedColorFilter, setSelectedColorFilter] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [selectedHeatmap, setSelectedHeatmap] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+  const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
+  const heatmapRef = useRef(null);
+  const [heatmapOption, setHeatmapOption] = useState('');
 
-  // This manages the tooltip popup
+  // Check for mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+ 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (heatmapRef.current && !heatmapRef.current.contains(event.target)) {
+        setIsHeatmapHovered(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, text: '' });
 
-  // Theme colors
   const theme = {
     background: darkMode ? '#0f0f0f' : '#f9f9f9',
     cardBackground: darkMode ? '#1a1a1a' : '#ffffff',
@@ -89,19 +120,17 @@ const WarehouseHeatmap = () => {
     summaryText2: darkMode ? '#81c784' : '#1b5e20',
   };
 
-  //  Generate stable data that only changes when parameters change
+  // Generate stable data that only changes when parameters change
   const stableHeatmapData = useMemo(() => {
     const gridData = [];
     const zone = zoneCoordinates[whichZone];
     
-    // Create a seed based on the parameters to ensure consistent but different data
     const seed = `${heatmapParameter}-${whichZone}-${timeRange}-${assetType}`;
     let seedValue = 0;
     for (let i = 0; i < seed.length; i++) {
       seedValue += seed.charCodeAt(i);
     }
     
-    // Simple seeded random function
     const seededRandom = (seed: number) => {
       const x = Math.sin(seed) * 10000;
       return x - Math.floor(x);
@@ -160,30 +189,32 @@ const WarehouseHeatmap = () => {
 
   const legendContainerStyle: React.CSSProperties = {
     position: 'absolute',
-    bottom: 20,
-    right: 20,
+    bottom: isMobile ? 10 : 20,
+    left: isMobile ? 10 : 20,
     display: 'flex',
-    flexDirection: 'row',
+    flexDirection: isMobile ? 'column' : 'row',
     flexWrap: 'wrap',
     justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: 14,
+    alignItems: isMobile ? 'flex-end' : 'center',
+    gap: isMobile ? 8 : 14,
     backgroundColor: 'transparent',
     padding: 0,
     borderRadius: 0,
     boxShadow: 'none',
     zIndex: 10,
-    fontSize: '12px',
+    fontSize: isMobile ? '10px' : '12px',
     color: darkMode ? '#fff' : '#000',
-    maxWidth: '90%', // Limit max width so it doesn't overflow the container
+    maxWidth: isMobile ? '40%' : '90%',
   };
-  
 
   const legendItemStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: 6,
+    gap: isMobile ? 4 : 6,
     cursor: 'pointer',
+  };
+  const handleReset = () => {
+    setScale(0.8);           // Reset zoom level to default
   };
 
   const getHeatmapHeading = () => {
@@ -210,18 +241,14 @@ const WarehouseHeatmap = () => {
     };
   }, [isPlaying]);
 
-  // Handle legend click functionality
   const handleLegendClick = (colorValue: string) => {
     if (selectedColorFilter === colorValue) {
-      // If clicking the same color, reset to show all data
       setSelectedColorFilter(null);
     } else {
-      // Filter to show only the selected color range
       setSelectedColorFilter(colorValue);
     }
   };
 
- 
   const getColorForValue = (value: number, isHighest: boolean) => {
     if (value <= 5) {
       return '#64DA82';
@@ -232,15 +259,13 @@ const WarehouseHeatmap = () => {
     } else if (value <= 200) {
       return '#F4A03F';
     } else {
-      return isHighest ? '#2c3e50' : '#e74c3c'; // Highest red becomes dark blue-gray, others stay red
+      return isHighest ? '#2c3e50' : '#e74c3c';
     }
   };
 
-  // Check if a value should be shown based on color filter
   const shouldShowValue = (value: number) => {
     if (selectedColorFilter === null) return true;
     
- 
     let maxValue = -1;
     
     for (const point of stableHeatmapData) {
@@ -254,7 +279,6 @@ const WarehouseHeatmap = () => {
     return valueColor === selectedColorFilter;
   };
 
-  // This handles the tooltip creation and click events
   const renderShape = (x: number, y: number, size: number, fill: string, isMax: boolean, textColor: string, textVal: string) => {
     let stroke = 'none';
     let strokeWidth = 0;
@@ -274,7 +298,6 @@ const WarehouseHeatmap = () => {
       }
     })();
   
-    // Includes the onClick handler for tooltip
     const shapeProps = {
       fill,
       stroke,
@@ -283,15 +306,12 @@ const WarehouseHeatmap = () => {
       className: strokeClass,
       style: { cursor: 'pointer' }, 
       onClick: (e: React.MouseEvent) => {
-
-        //  Shows tooltip at cursor position
         setTooltip({
           visible: true,
           x: e.clientX,
           y: e.clientY,
           text: tooltipText,
         });
-        
         
         setTimeout(() => {
           setTooltip({ visible: false, x: 0, y: 0, text: '' });
@@ -351,11 +371,9 @@ const WarehouseHeatmap = () => {
     }
   };
   
-  // GENERATE HEATMAP CIRCLES - uses stable data
   const generateHeatmapCircles = () => {
     const renderedShapes = [];
     
-    // Find max value for highlighting
     let maxValue = -1;
     let maxId = null;
     
@@ -366,11 +384,9 @@ const WarehouseHeatmap = () => {
       }
     }
     
-    // Render shapes
     for (const point of stableHeatmapData) {
       const { x, y, id, value } = point;
 
-      // Skip if color filter is active and this value doesn't match
       if (!shouldShowValue(value)) continue;
   
       const isHighest = id === maxId && value === maxValue && value > 200;
@@ -411,17 +427,14 @@ const WarehouseHeatmap = () => {
     return renderedShapes;
   };
 
-  // Handle zoom in functionality
   const handleZoomIn = () => {
     setScale(prev => Math.min(prev + 0.1, 2));
   };
 
-  // Handle zoom out functionality
   const handleZoomOut = () => {
     setScale(prev => Math.max(prev - 0.1, 0.5));
   };
 
-  // Handle full screen toggle
   const handleFullScreenToggle = () => {
     const mapContainer = document.getElementById('warehouse-map-container') as HTMLElementWithFullscreen;
     const doc = document as DocumentWithFullscreen;
@@ -429,29 +442,30 @@ const WarehouseHeatmap = () => {
     if (!isFullScreen) {
       if (mapContainer?.requestFullscreen) {
         mapContainer.requestFullscreen();
-      } else if (mapContainer?.mozRequestFullScreen) { // Firefox
+      } else if (mapContainer?.mozRequestFullScreen) {
         mapContainer.mozRequestFullScreen();
-      } else if (mapContainer?.webkitRequestFullscreen) { // Chrome, Safari and Opera
+      } else if (mapContainer?.webkitRequestFullscreen) {
         mapContainer.webkitRequestFullscreen();
-      } else if (mapContainer?.msRequestFullscreen) { // IE/Edge
+      } else if (mapContainer?.msRequestFullscreen) {
         mapContainer.msRequestFullscreen();
       }
       setIsFullScreen(true);
     } else {
       if (doc.exitFullscreen) {
         doc.exitFullscreen();
-      } else if (doc.mozCancelFullScreen) { // Firefox
+      } else if (doc.mozCancelFullScreen) {
         doc.mozCancelFullScreen();
-      } else if (doc.webkitExitFullscreen) { // Chrome, Safari and Opera
+      } else if (doc.webkitExitFullscreen) {
         doc.webkitExitFullscreen();
-      } else if (doc.msExitFullscreen) { // IE/Edge
+      } else if (doc.msExitFullscreen) {
         doc.msExitFullscreen();
       }
       setIsFullScreen(false);
     }
   };
 
-  // Listen for fullscreen change events
+  
+
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullScreen(!!document.fullscreenElement);
@@ -470,90 +484,241 @@ const WarehouseHeatmap = () => {
     };
   }, []);
 
+  
+
   return (
-    <div style={{ height: '100vh', width: '100vw', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontFamily: 'times new roman', backgroundColor: theme.background }}>
-      <div style={{  padding: '4px 20px', marginBottom: 1, marginTop:'2px',backgroundColor: theme.cardBackground, boxShadow: darkMode ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.05)', position: 'relative' }}>
-        <h1 style={{ fontSize: '1.8rem', color: theme.textPrimary, margin: 0 }}>Phantom Trail</h1>
-        <p style={{ fontSize: '1rem', color: theme.textSecondary, margin: 0 }}>Warehouse</p>
-       
-        
-        <div style={{
-          position: 'absolute',
-          top: '17px',
-          right: '20px',
+    <div style={{ 
+      height: '100vh', 
+      width: '100vw', 
+      overflow: isMobile ? 'auto' : 'hidden', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      fontFamily: 'Libertinus Math', 
+      backgroundColor: theme.background 
+    }}>
+      <style>
+        {`
+          @media (max-width: 768px) {
+            .mobile-stack {
+              flex-direction: column !important;
+            }
+            .mobile-scroll {
+              overflow-x: auto !important;
+              overflow-y: hidden !important;
+            }
+            .mobile-full-width {
+              flex-basis: 100% !important;
+            }
+            .mobile-hide-on-fullscreen {
+              display: ${isFullScreen ? 'none' : 'block'} !important;
+            }
+            .mobile-map-container {
+              height: 50vh !important;
+              min-height: 300px !important;
+            }
+          }
+        `}
+      </style>
+
+      <div style={{  
+        padding:'4px 20px', 
+        backgroundColor: theme.cardBackground, 
+
+        position: 'relative' 
+      }}>
+        <h1 style={{ 
+          fontSize: isMobile ? '1.4rem' : '1.8rem', 
+          color: darkMode ? '#FF00FF' : '#1A1A1A'  ,
+          margin: 0 
+        }}>Phantom Trail</h1>
+        <p style={{ 
+          fontSize: isMobile ? '0.8rem' : '1rem',
+          fontWeight:'bolder', 
+          color: '#66CDAA', 
+          margin: 0 
+        }}>Warehouse</p>
+
+       {/*navbar*/}
+
+
+       <div style={{
+      position: 'absolute',
+      top: 20,
+      right: 21, // shifted 30px more to the right
+      zIndex: 1000,
+      display: 'flex',
+      gap: '20px',
+      alignItems: 'center',
+      fontWeight: 700,
+      fontSize: 15
+    }}>
+      
+      {/* Action Trail */}
+      <Link
+        to="/"
+        style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
-          fontSize: '13px',
-          fontWeight: '700'
-        }}>
-          {/* Live Trail Link */}
-          <Link
-            to="/dashboard"
-            style={{
-              textDecoration: 'none',
-              color: location.pathname === '/dashboard' ? '#fff' : (darkMode ? '#ffffff' : '#000000'),
-              backgroundColor: location.pathname === '/dashboard' ? '#003366' : 'transparent',
-              padding: '6px 10px',
-              border: `1px solid ${location.pathname === '/dashboard' ? '#003366' : (darkMode ? '#555' : '#ccc')}`,
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px'
-            }}
-          >
-            <FaMapMarkerAlt size={14} />
-            Live Trail
-          </Link>
+          fontWeight: 700,
+          gap: '5px',
+          color: location.pathname === '/' ? '#157AF6' : (darkMode ? '#ffffff' : '#000000'),
+          cursor: 'pointer',
+          transition: 'color 0.3s ease',
+        }}
+        onMouseEnter={e => e.currentTarget.style.color = '#4B9DF7'}
+        onMouseLeave={e => e.currentTarget.style.color = location.pathname === '/' ? '#157AF6' : (darkMode ? '#ffffff' : '#000000')}
+      >
+        <FaMapMarkerAlt size={14} />
+        Action Trail
+      </Link>
 
-          {/* Heatmap Link */}
-          <Link
-            to="/heatmap"
-            style={{
-              textDecoration: 'none',
-              color: location.pathname === '/heatmap' ? '#fff' : (darkMode ? '#ffffff' : '#000000'),
-              backgroundColor: location.pathname === '/heatmap' ? '#F28D3C' : 'transparent',
-              padding: '6px 10px',
-              border: `1px solid ${location.pathname === '/heatmap' ? '#F28D3C' : (darkMode ? '#555' : '#ccc')}`,
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px'
-            }}
-          >
-            <FaFire size={14} />
-            Heatmap
-          </Link>
-
-          {/* Dark Mode Toggle */}
-          <span
-            onClick={() => setDarkMode(!darkMode)}
-            style={{
-              marginLeft: '5px',
-              cursor: 'pointer',
-              fontSize: '10px',
-              color: darkMode ? '#ffffff' : '#000000',
-              transition: 'color 0.3s ease-in-out'
-            }}
-          >
-            {darkMode ? <FaSun size={19} /> : <FaMoon size={19} />}
-          </span>
+      {/* Heatmap with Dropdown */}
+      <div
+        ref={heatmapRef}
+        onMouseEnter={() => setIsHeatmapHovered(true)}
+        onMouseLeave={() => setIsHeatmapHovered(true)}
+        style={{ position: 'relative', cursor: 'pointer' }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            color: isHeatmapHovered || location.pathname === '/heatmap' ? '#F28D3C' : (darkMode ? '#ffffff' : '#000000'),
+            fontWeight: isHeatmapHovered || location.pathname === '/heatmap' ? 800 : 700,
+            transition: 'color 0.3s ease',
+          }}
+        >
+          <FaFire size={14} />
+          Heatmap ▾
         </div>
+
+        {/* Dropdown */}
+        {isHeatmapHovered && (
+          <div style={{
+            position: 'absolute',
+            top: '100%',
+            right: 9,
+            backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
+            border: `1px solid ${darkMode ? '#555' : '#ddd'}`,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            borderRadius: 6,
+            marginTop: 6,
+            padding: '2px 0',
+            minWidth: 180,
+            display: 'flex',
+            flexDirection: 'column',
+            zIndex: 9999,
+          }}>
+            {['Dwell Time', 'Visit Frequency', 'Peak Occupancy', 'Power Consumption'].map(option => (
+              <Link
+                key={option}
+                to="/heatmap"
+                onClick={() => {
+                  setHeatmapOption(option);
+                  setIsHeatmapHovered(false);
+                }}
+                style={{
+                  padding: '8px 16px',
+                  color: heatmapOption === option ? '#F28D3C' : (darkMode ? '#fff' : '#000'),
+                  backgroundColor: heatmapOption === option ? '#F28D3C22' : 'transparent',
+                  fontSize: '14px',
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                  display: 'block',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = '#F28D3C'}
+                onMouseLeave={e => {
+                  e.currentTarget.style.color = heatmapOption === option ? '#F28D3C' : (darkMode ? '#fff' : '#000');
+                }}
+              >
+                {option}
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/*left panel */}    
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <div style={{
-          flexBasis: isFullScreen ? '100%' : '75%',
-          padding: 16,
+      {/* Dark Mode Toggle */}
+      <div
+  onClick={() => setDarkMode(!darkMode)}
+  style={{
+    width: '52px',
+    height: '28px',
+    borderRadius: '999px',
+    position: 'relative',
+    cursor: 'pointer',
+    overflow: 'hidden',
+    background: darkMode
+      ? 'linear-gradient(135deg, #3b0764, #1e40af)'
+      : 'linear-gradient(135deg, #fde68a, #f59e0b)',
+    transition: 'background 0.4s ease-in-out',
+    boxShadow: 'inset 0 0 6px rgba(0,0,0,0.2)',
+    marginLeft: '1px',
+  }}
+>
+  {/* Sliding Icon + White Background */}
+  <div
+    style={{
+      position: 'absolute',
+      top: '50%',
+      left: darkMode ? '26px' : '4px',
+      transform: 'translateY(-50%)',
+      transition: 'left 0.4s ease-in-out',
+      width: '22px',
+      height: '22px',
+      borderRadius: '50%',
+      backgroundColor: '#ffffff', // ✅ White circle background
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+    }}
+  >
+    {darkMode ? (
+      <HiMoon
+        size={18}
+        style={{
+          color: '#3b0764',
+          transform: 'scaleX(-1)',
+          transition: 'opacity 0.3s ease-in-out',
+        }}
+      />
+    ) : (
+      <IoSunny
+        size={18}
+        style={{
+          color: '#f59e0b',
+          transition: 'opacity 0.3s ease-in-out',
+        }}
+      />
+    )}
+  </div>
+</div>
+</div>
+</div>
+
+
+
+      <div className={isMobile ? 'mobile-stack' : ''} style={{ 
+        display: 'flex', 
+        flex: 1, 
+        overflow: 'hidden',
+        flexDirection: isMobile ? 'column' : 'row'
+      }}>
+        <div className={isMobile ? 'mobile-full-width mobile-map-container' : ''} style={{
+          flexBasis: isFullScreen ? '100%' : (isMobile ? 'auto' : '75%'),
+          padding: isMobile ? 8 : 16,
           backgroundColor: theme.cardBackground, 
           position: 'relative',
         }}>
 
           <div 
             id="warehouse-map-container"
+            className={isMobile ? 'mobile-scroll' : ''}
             style={{
-              height: 'calc(100% - 10px)',
+              height: isMobile ? '100%' : 'calc(100% - 10px)',
               borderRadius: 10,
               border: `2px solid ${theme.border}`,
               padding: 0,
@@ -562,92 +727,167 @@ const WarehouseHeatmap = () => {
               boxShadow: darkMode
                 ? 'inset 0 0 8px rgba(0,0,0,0.2)'
                 : 'inset 0 0 8px rgba(0,0,0,0.05)',
-              overflow: 'hidden'
+              overflow: isMobile ? 'auto' : 'hidden',
             }}
           >  
 
             <div style={{
               height: '100%',
-              width: '100%',
+              width: isMobile ? '800px' : '100%',
+              minWidth: isMobile ? '800px' : 'auto',
               backgroundColor: darkMode ? '#1a1a1a' : '#fff',  
               backgroundImage: darkMode
-                ? `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)` // ✅ SOFT WHITE GRID IN DARK
+                ? `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`
                 : `linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px)`,
               backgroundSize: '20px 20px',
               borderRadius: 10,
               overflow: 'hidden'
             }}>
 
-              <div style={{
-                position: 'absolute',
-                top: 20,
-                right: 20,
-                zIndex: 20,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 12,
-                alignItems: 'center',
-                backgroundColor: 'transparent',
-                padding: '8px 12px',
-                borderRadius: 8,
-                boxShadow: 'none'
-              }}>
-                <FaSearchPlus
-                  style={{ 
-                    cursor: 'pointer',
-                    color: darkMode ? '#fff' : '#000',
-                    opacity: 0.7,
-                    transition: 'opacity 0.2s ease',
-                  }}
-                  onClick={handleZoomIn}
-                  title="Zoom In"
-                  size={18}
-                  onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
-                  onMouseOut={(e) => e.currentTarget.style.opacity = '0.7'}
-                />
-                <FaSearchMinus
-                  style={{ 
-                    cursor: 'pointer',
-                    color: darkMode ? '#fff' : '#000',
-                    opacity: 0.7,
-                    transition: 'opacity 0.2s ease',
-                  }}
-                  onClick={handleZoomOut}
-                  title="Zoom Out"
-                  size={18}
-                  onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
-                  onMouseOut={(e) => e.currentTarget.style.opacity = '0.7'}
-                />
-                {isFullScreen ? (
-                  <FaCompress
-                    style={{ 
-                      cursor: 'pointer',
-                      color: darkMode ? '#fff' : '#000',
-                      opacity: 0.7,
-                      transition: 'opacity 0.2s ease',
-                    }}
-                    onClick={handleFullScreenToggle}
-                    title="Exit Full Screen"
-                    size={18}
-                    onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
-                    onMouseOut={(e) => e.currentTarget.style.opacity = '0.7'}
-                  />
-                ) : (
-                  <FaExpand
-                    style={{ 
-                      cursor: 'pointer',
-                      color: darkMode ? '#fff' : '#000',
-                      opacity: 0.7,
-                      transition: 'opacity 0.2s ease',
-                    }}
-                    onClick={handleFullScreenToggle}
-                    title="Full Screen"
-                    size={18}
-                    onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
-                    onMouseOut={(e) => e.currentTarget.style.opacity = '0.7'}
-                  />
-                )}
-              </div>
+              {/* Active Indicators (Top Right of Grid) */}
+<div style={{
+  position: 'absolute',
+  top: 20,
+  right: 30,
+  zIndex: 20,
+  display: 'flex',
+  gap: '20px',
+  alignItems: 'center',
+  fontSize: 13,
+  fontWeight: 500,
+  color: darkMode ? '#ccc' : '#333',
+}}>
+  {/* Green blinking dot + Active Assets */}
+  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+    <div style={{
+      width: 8,
+      height: 8,
+      borderRadius: '50%',
+      backgroundColor: '#00C853',
+      animation: 'blink 1s infinite',
+    }} />
+    <span>Active Assets: 2</span>
+  </div>
+
+  {/* Blue dot + Active Zones */}
+  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+    <div style={{
+      width: 8,
+      height: 8,
+      borderRadius: '50%',
+      backgroundColor: '#1E88E5',
+      animation: 'blink 1s infinite',
+    }} />
+    <span>Active Zones: 8</span>
+  </div>
+</div>
+
+<style>
+{`
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+`}
+</style>
+
+<div style={{
+  position: 'absolute',
+  bottom: 30,
+  right: 30,
+  zIndex: 20,
+  display: 'flex',
+  gap: '14px',
+  alignItems: 'center',
+}}>
+  {/* Zoom In */}
+  <FaSearchPlus
+    style={{
+      cursor: 'pointer',
+      color: darkMode ? '#CCCCCC' : '#333333',
+      opacity: 0.9,
+      transition: 'opacity 0.2s ease',
+    }}
+    onClick={handleZoomIn}
+    title="Zoom In"
+    size={18}
+    onMouseOver={e => e.currentTarget.style.opacity = 1}
+    onMouseOut={e => e.currentTarget.style.opacity = 0.9}
+  />
+
+  {/* Zoom Out */}
+  <FaSearchMinus
+    style={{
+      cursor: 'pointer',
+      color: darkMode ? '#CCCCCC' : '#333333',
+      opacity: 0.9,
+      transition: 'opacity 0.2s ease',
+    }}
+    onClick={handleZoomOut}
+    title="Zoom Out"
+    size={18}
+    onMouseOver={e => e.currentTarget.style.opacity = 1}
+    onMouseOut={e => e.currentTarget.style.opacity = 0.9}
+  />
+
+  {/* Fullscreen Toggle */}
+  {isFullScreen ? (
+    <FaCompress
+      style={{
+        cursor: 'pointer',
+        color: darkMode ? '#CCCCCC' : '#333333',
+        opacity: 0.9,
+        transition: 'opacity 0.2s ease',
+      }}
+      onClick={handleFullScreenToggle}
+      title="Exit Full Screen"
+      size={18}
+      onMouseOver={e => e.currentTarget.style.opacity = 1}
+      onMouseOut={e => e.currentTarget.style.opacity = 0.9}
+    />
+  ) : (
+    <FaExpand
+      style={{
+        cursor: 'pointer',
+        color: darkMode ? '#CCCCCC' : '#333333',
+        opacity: 0.9,
+        transition: 'opacity 0.2s ease',
+      }}
+      onClick={handleFullScreenToggle}
+      title="Full Screen"
+      size={18}
+      onMouseOver={e => e.currentTarget.style.opacity = 1}
+      onMouseOut={e => e.currentTarget.style.opacity = 0.9}
+    />
+  )}
+
+  {/* Reset Button */}
+  <button
+    onClick={handleReset}
+    title="Reset Map to Default View"
+    style={{
+      fontSize: '13px',
+      fontWeight: 500,
+      padding: '4px 8px',
+      borderRadius: 4,
+      backgroundColor: 'transparent',
+      border: `1px solid ${darkMode ? '#666' : '#ccc'}`,
+      color: darkMode ? '#CCCCCC' : '#333333',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+    }}
+    onMouseOver={e => {
+      e.currentTarget.style.backgroundColor = darkMode ? '#333' : '#f0f0f0';
+    }}
+    onMouseOut={e => {
+      e.currentTarget.style.backgroundColor = 'transparent';
+    }}
+  >
+    Reset
+  </button>
+</div>
+
 
               <div style={{
                 transform: `scale(${scale})`,
@@ -693,7 +933,6 @@ const WarehouseHeatmap = () => {
                     </filter>
                   </defs>
 
-                  {/* ROOM ZONES */}
                   <rect x="20" y="20" width="150" height="150" fill={darkMode ? "#1a2833" : "#e6f2ff"} stroke={darkMode ? "#4a90e2" : "#005cbf"} strokeDasharray="6" strokeWidth="1.5" />
                   <text x="90" y="95" fill={darkMode ? "#64b5f6" : "#003366"} fontSize="12" textAnchor="middle">Asset Area</text>
 
@@ -718,7 +957,6 @@ const WarehouseHeatmap = () => {
                   <rect x="20" y="330" width="90" height="140" fill={darkMode ? "#1a2b2b" : "#e0f7fa"} stroke={darkMode ? "#26c6da" : "#00838f"} strokeDasharray="6" strokeWidth="1.5" />
                   <text x="60" y="410" fill={darkMode ? "#4dd0e1" : "#006064"} fontSize="12" textAnchor="middle">Canteen</text>
 
-                  {/* Heatmap dots */}
                   <g>{generateHeatmapCircles()}</g>
                 </svg>
               </div>
@@ -743,7 +981,9 @@ const WarehouseHeatmap = () => {
                       onClick={() => handleLegendClick(item.color)}
                     >
                       <div style={{
-                        width: 14, height: 14, borderRadius: '50%',
+                        width: isMobile ? 10 : 14, 
+                        height: isMobile ? 10 : 14, 
+                        borderRadius: '50%',
                         backgroundColor: item.color,
                       }}></div>
                       <span>{item.label}</span>
@@ -755,7 +995,6 @@ const WarehouseHeatmap = () => {
               {heatmapParameter === 'count' && (
                 <div style={legendContainerStyle}>
                   {[
-
                     { color: '#64DA82', label: '0-5 people' },
                     { color: '#93DD45', label: '6–30 people' },
                     { color: '#FDE34D', label: '31–60 people' },
@@ -772,7 +1011,9 @@ const WarehouseHeatmap = () => {
                       onClick={() => handleLegendClick(item.color)}
                     >
                       <div style={{
-                        width: 20, height: 20, backgroundColor: item.color,
+                        width: isMobile ? 16 : 20, 
+                        height: isMobile ? 16 : 20, 
+                        backgroundColor: item.color,
                         border: (item.color === '#9b59b6' || item.color === '#2c3e50') ? `2px solid ${darkMode ? '#fff' : '#222'}` : 'none',
                         clipPath: 'polygon(50% 0%, 95% 38%, 79% 95%, 21% 95%, 5% 38%)'
                       }}></div>
@@ -785,7 +1026,6 @@ const WarehouseHeatmap = () => {
               {heatmapParameter === 'power' && (
                 <div style={legendContainerStyle}>
                   {[
-               
                     { color: '#64DA82', label: '0-9 kwh' },
                     { color: '#93DD45', label: '10–30 kWh' },
                     { color: '#FDE34D', label: '31–60 kWh' },
@@ -802,7 +1042,9 @@ const WarehouseHeatmap = () => {
                       onClick={() => handleLegendClick(item.color)}
                     >
                       <div style={{
-                        width: 20, height: 20, backgroundColor: item.color,
+                        width: isMobile ? 16 : 20, 
+                        height: isMobile ? 16 : 20, 
+                        backgroundColor: item.color,
                         border: (item.color === '#9b59b6' || item.color === '#2c3e50') ? `2px solid ${darkMode ? '#fff' : '#222'}` : 'none',
                         clipPath: 'polygon(50% 0%, 95% 38%, 79% 95%, 21% 95%, 5% 38%)'
                       }}></div>
@@ -815,7 +1057,6 @@ const WarehouseHeatmap = () => {
               {heatmapParameter === 'visits' && (
                 <div style={legendContainerStyle}>
                   {[
-               
                     { color: '#64DA82', label: '0-5 Visits' },
                     { color: '#93DD45', label: '6–30 visits' },
                     { color: '#FDE34D', label: '31–60 visits' },
@@ -832,7 +1073,9 @@ const WarehouseHeatmap = () => {
                       onClick={() => handleLegendClick(item.color)}
                     >
                       <div style={{
-                        width: 14, height: 14, backgroundColor: item.color,
+                        width: isMobile ? 10 : 14, 
+                        height: isMobile ? 10 : 14, 
+                        backgroundColor: item.color,
                         border: (item.color === '#9b59b6' || item.color === '#2c3e50') ? `2px solid ${darkMode ? '#fff' : '#222'}` : 'none'
                       }}></div>
                       <span>{item.label}</span>
@@ -841,12 +1084,17 @@ const WarehouseHeatmap = () => {
                 </div>
               )}
 
-              {/* Dynamic Heatmap Heading */}
-              <div style={{ textAlign: 'center', fontWeight: 900, fontSize: 15, color: theme.textTertiary, marginTop: 6, textTransform: 'uppercase'}}>
+              <div style={{ 
+                textAlign: 'center', 
+                fontWeight: 900, 
+                fontSize: isMobile ? 12 : 15, 
+                color: theme.textTertiary, 
+                marginTop: 6, 
+                textTransform: 'uppercase'
+              }}>
                 {getHeatmapHeading()} ({whichZone})
               </div>
 
-              {/* actual tooltip */}
               {tooltip.visible && (
                 <div
                   style={{
@@ -857,7 +1105,7 @@ const WarehouseHeatmap = () => {
                     color: '#fff',
                     padding: '8px 12px',
                     borderRadius: 8,
-                    fontSize: 13,
+                    fontSize: isMobile ? 11 : 13,
                     fontWeight: 600,
                     pointerEvents: 'none',
                     zIndex: 9999,
@@ -875,65 +1123,187 @@ const WarehouseHeatmap = () => {
           </div>
         </div>
 
-        {/* right panel */}
-        <div style={{ 
-          flexBasis: isFullScreen ? '0%' : '25%', 
-          padding: isFullScreen ? 0 : 16, 
-          backgroundColor: darkMode ? '#1a1a1a' : '#ffffff', 
-          overflowY: 'auto',
-          display: isFullScreen ? 'none' : 'block',
+ {/* right panel */}
+ <div
+   className={darkMode ? 'mid-panel dark-scroll' : 'mid-panel light-scroll'}
+  style={{
+    flexBasis: isFullScreen ? '0%' : (isMobile ? '100%' : '25%'),
+    padding: isFullScreen ? 0 : (isMobile ? 8 : 16),
+    backgroundColor: darkMode ? '#1a1a1a' : '#ffffff', // ✅ Dark mode support
+    color: darkMode ? '#f0f0f0' : '#000000',  
+    boxShadow: 'none', 
+            
+    overflowY: 'auto',
+    display: isFullScreen ? 'none' : 'block',
+  }}
+>
+
+  {/* Box 1: Time Range + Heatmap Filter */}
+  <div style={{
+    backgroundColor: darkMode ? '#2a2a2a' : '#ffffff',
+    padding: 16,
+    marginBottom: 16,
+    borderRadius: 20,
+    border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)',
+  }}>
+    {/* Time Range */}
+    <div style={{ marginBottom: 16 }}>
+      <label style={{
+        fontWeight: 700,
+        color: theme.textPrimary,
+        display: 'flex',
+        alignItems: 'center',
+        marginBottom: 8,
+        fontSize: 14
+      }}>
+        <FaClock style={{ marginRight: 6 }} /> Time Range
+      </label>
+      <select
+        value={timeRange}
+        onChange={(e) => setTimeRange(e.target.value)}
+        style={{
+          width: '100%',
+          padding: 10,
+          borderRadius: 16,
           border: `1px solid ${theme.border}`,
-          borderRadius: 0,
-          boxShadow: darkMode ? 'inset 2px 0 4px rgba(0,0,0,0.3)' : 'inset 2px 0 4px rgba(0,0,0,0.1)',
-        }}>
+          backgroundColor: darkMode ? '#4a4a4a' : '#ffffff',
+          color: theme.textPrimary,
+          fontWeight: 500,
+          fontSize: 14
+        }}
+      >
+        <option>1 Hour</option>
+        <option>4 Hours</option>
+        <option>24 Hours</option>
+      </select>
+    </div>
 
-          {/* Unified Inner Panel */}
-          <div style={{
-            backgroundColor: darkMode ? '#2a2a2a' : '#F8F9FA', 
-            padding: 16,
-            borderRadius: 20,
-            border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
-            boxShadow: 'inset 0 1px 6px rgba(0,0,0,0.06)',
-            marginBottom: 20,
-          }}>
+    {/* Heatmap Filter */}
+    <div>
+      <label style={{
+        fontWeight: 700,
+        color: theme.textPrimary,
+        display: 'flex',
+        alignItems: 'center',
+        marginBottom: 8,
+        fontSize: 14
+      }}>
+        <FaFire style={{ marginRight: 6 }} /> Heatmap Filter
+      </label>
+      <select
+        value={heatmapParameter}
+        onChange={(e) => setHeatmapParameter(e.target.value)}
+        style={{
+          width: '100%',
+          padding: '10px 12px',
+          borderRadius: 16,
+          border: `1px solid ${theme.border}`,
+          backgroundColor: darkMode ? '#4a4a4a' : '#ffffff',
+          color: theme.textPrimary,
+          fontWeight: 500,
+          fontSize: 14
+        }}
+      >
+        <option value="time">Dwell Time</option>
+        <option value="count">Peak Occupancy</option>
+        <option value="power">Power Consumption</option>
+        <option value="visits">Visit Frequency</option>
+      </select>
+    </div>
+  </div>
 
-            {/* Time Range + Asset Type */}
-<div style={{
-  marginBottom: 16,
-  padding: 16,
-  backgroundColor: darkMode ? '#333333' : '#F8F9FA',
-  borderRadius: 12,
-  border: `1px solid ${darkMode ? '#555' : '#dee2e6'}`,
-  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)'
-}}>
-  
-  {/* Time Range Section */}
-  <div style={{ marginBottom: 16 }}>
-    <label style={{ fontWeight: 700, color: theme.textPrimary, display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-      <FaClock style={{ marginRight: 6 }} /> Time Range
-    </label>
-    <select
-      value={timeRange}
-      onChange={(e) => setTimeRange(e.target.value)}
-      style={{
+  {/* Box 2: Select Zone + Floor + Intensity */}
+  <div style={{
+    backgroundColor: darkMode ? '#2a2a2a' : '#ffffff',
+    padding: 16,
+    marginBottom: 16,
+    borderRadius: 20,
+    border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)',
+  }}>
+    <div style={{ marginBottom: 16 }}>
+      <label style={{ fontWeight: 700, color: theme.textPrimary, marginBottom: 8, display: 'block' }}>Select Zone</label>
+      <select value={whichZone} onChange={(e) => setWhichZone(e.target.value)} style={{
         width: '100%',
         padding: '10px 12px',
         borderRadius: 16,
         border: `1px solid ${theme.border}`,
         backgroundColor: darkMode ? '#4a4a4a' : '#ffffff',
         color: theme.textPrimary,
-        fontWeight: 500
-      }}
-    >
-      <option>1 Hour</option>
-      <option>4 Hours</option>
-      <option>24 Hours</option>
-    </select>
+        fontWeight: 500,
+        fontSize: 14
+      }}>
+        <option>Asset Area</option>
+        <option>Storage Area 1</option>
+        <option>Storage Area 2</option>
+        <option>Office</option>
+        <option>Canteen</option>
+        <option>Receiving Dock</option>
+        <option>Shipping Dock</option>
+        <option>Service Area</option>
+        <option>Whole Warehouse</option>
+      </select>
+    </div>
+
+    <div style={{ marginBottom: 16 }}>
+      <label style={{ fontWeight: 700, color: theme.textPrimary, marginBottom: 8, display: 'block' }}>Select Floor</label>
+      <select value={whichZone} onChange={(e) => setWhichZone(e.target.value)} style={{
+        width: '100%',
+        padding: '10px 12px',
+        borderRadius: 16,
+        border: `1px solid ${theme.border}`,
+        backgroundColor: darkMode ? '#4a4a4a' : '#ffffff',
+        color: theme.textPrimary,
+        fontWeight: 500,
+        fontSize: 14
+      }}>
+        <option>Floor 1</option>
+        <option>Floor 2</option>
+        <option>Floor 3</option>
+      </select>
+    </div>
+
+    {/* Intensity Slider */}
+    <div>
+      <label style={{ fontWeight: 700, color: theme.textPrimary, display: 'block', marginBottom: 6 }}>Adjust Intensity</label>
+      <input
+        type="range"
+        min={1}
+        max={10}
+        value={intensity}
+        onChange={(e) => setIntensity(Number(e.target.value))}
+        style={{
+          width: '100%',
+          appearance: 'none',
+          height: '8px',
+          borderRadius: '4px',
+          outline: 'none',
+          background: 'linear-gradient(to right, #b9f6ca 0%, #00c853 25%, #ffeb3b 50%, #ff9800 75%, #f44336 100%)',
+        }}
+      />
+      <div style={{ textAlign: 'right', fontSize: 13, fontWeight: 700, marginTop: 6, color: theme.textSecondary }}>
+        Intensity: {intensity}
+      </div>
+    </div>
   </div>
 
-  {/* Asset Type Section */}
-  <div>
-    <label style={{ fontWeight: 700, color: theme.textPrimary, display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+  {/* Box 3: Asset Type + Heatmap Details */}
+  <div style={{
+    backgroundColor: darkMode ? '#2a2a2a' : '#ffffff',
+    padding: 16,
+    borderRadius: 20,
+    border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)',
+  }}>
+    {/* Asset Type */}
+    <label style={{
+      fontWeight: 700,
+      color: theme.textPrimary,
+      display: 'flex',
+      alignItems: 'center',
+      marginBottom: 8
+    }}>
       <FaTruck style={{ marginRight: 6 }} /> Asset Type
     </label>
     <select
@@ -949,7 +1319,8 @@ const WarehouseHeatmap = () => {
         border: `1px solid ${theme.border}`,
         backgroundColor: darkMode ? '#4a4a4a' : '#ffffff',
         color: theme.textPrimary,
-        fontWeight: 500
+        fontWeight: 500,
+        fontSize: 14
       }}
     >
       <option>Forklifts</option>
@@ -958,181 +1329,55 @@ const WarehouseHeatmap = () => {
       <option>Operators/Workers</option>
       <option>All Assets</option>
     </select>
+
+    {/* Heatmap Details */}
+    <div style={{ marginTop: 16 }}>
+      <h3 style={{
+        fontSize: 14,
+        fontWeight: 700,
+        color: theme.textPrimary,
+        display: 'flex',
+        alignItems: 'center'
+      }}>
+        <AiOutlineHeatMap style={{ marginRight: 6 }} />
+        Heatmap Details
+      </h3>
+      <ul style={{ listStyle: 'none', padding: 0 }}>
+        {stableAssetData.map(({ id, value }, index) => (
+          <li key={index} style={{
+            marginBottom: 6,
+            padding: '10px 14px',
+            borderRadius: 14,
+            backgroundColor: darkMode ? '#4a4a4a' : '#F1F3F4',
+            fontSize: 14,
+            fontWeight: 600,
+            color: theme.textPrimary,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <span>{id}</span>
+            <span>
+              {heatmapParameter === 'time' && `${value} seconds`}
+              {heatmapParameter === 'count' && `${value} people`}
+              {heatmapParameter === 'power' && `${value} kWh`}
+              {heatmapParameter === 'visits' && `${value} visits`}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   </div>
 </div>
 
-
+          
+             
             
-
-            {/* Select Zone and Floor */}
-            <div style={{
-              display: 'flex',
-              gap: 10,
-              marginBottom: 16,
-              padding: 16,
-              backgroundColor: darkMode ? '#333333' : '#F8F9FA',
-              borderRadius: 12,
-              border: `1px solid ${darkMode ? '#555' : '#dee2e6'}`,
-              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)'
-            }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontWeight: 700, color: theme.textPrimary, marginBottom: 8, display: 'block' }}>
-                  Select Zone
-                </label>
-                <select value={whichZone} onChange={(e) => setWhichZone(e.target.value)} style={{
-                  width: '100%', padding: '10px 12px', borderRadius: 16, border: `1px solid ${theme.border}`,
-                  backgroundColor: darkMode ? '#4a4a4a' : '#ffffff', color: theme.textPrimary, fontWeight: 500
-                }}>
-                  <option>Asset Area</option>
-                  <option>Storage Area 1</option>
-                  <option>Storage Area 2</option>
-                  <option>Office</option>
-                  <option>Canteen</option>
-                  <option>Receiving Dock</option>
-                  <option>Shipping Dock</option>
-                  <option>Service Area</option>
-                  <option>Whole Warehouse</option>
-                </select>
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontWeight: 700, color: theme.textPrimary, marginBottom: 8, display: 'block' }}>
-                  Select Floor
-                </label>
-                <select value={whichZone} onChange={(e) => setWhichZone(e.target.value)} style={{
-                  width: '100%', padding: '10px 12px', borderRadius: 16, border: `1px solid ${theme.border}`,
-                  backgroundColor: darkMode ? '#4a4a4a' : '#ffffff', color: theme.textPrimary, fontWeight: 500
-                }}>
-                  <option>Floor 1</option>
-                  <option>Floor 2</option>
-                  <option>Floor 3</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Heatmap Parameter + Intensity + Details */}
-            <div style={{
-              padding: 16,
-              backgroundColor: darkMode ? '#333333' : '#F8F9FA',
-              borderRadius: 12,
-              border: `1px solid ${darkMode ? '#555' : '#dee2e6'}`,
-              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)',
-              marginBottom: 16
-            }}>
-              <label style={{ fontWeight: 700, color: theme.textPrimary, display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-                <FaFire style={{ marginRight: 6 }} /> Heatmap Parameter
-              </label>
-              <select
-                value={heatmapParameter}
-                onChange={(e) => setHeatmapParameter(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: 16,
-                  border: `1px solid ${theme.border}`,
-                  backgroundColor: darkMode ? '#4a4a4a' : '#ffffff',
-                  color: theme.textPrimary,
-                  fontWeight: 500,
-                }}
-              >
-                <option value="time">Highest Time</option>
-                <option value="count">Highest Count</option>
-                <option value="power">Highest Power Usage</option>
-                <option value="visits">Highest Visits</option>
-              </select>
-
-              <label style={{ fontWeight: 700, color: theme.textPrimary, display: 'block', margin: '10px 0 4px' }}>Adjust Intensity</label>
-              <input
-                type="range"
-                min={1}
-                max={10}
-                value={intensity}
-                onChange={(e) => setIntensity(Number(e.target.value))}
-                style={{
-                  width: '100%',
-                  appearance: 'none',
-                  height: '8px',
-                  borderRadius: '4px',
-                  outline: 'none',
-                  background: 'linear-gradient(to right, #b9f6ca 0%, #00c853 25%, #ffeb3b 50%, #ff9800 75%, #f44336 100%)',
-                }}
-              />
-              <div style={{ textAlign: 'right', fontSize: 13, fontWeight: 700, marginTop: 5, color: theme.textSecondary }}>
-                Intensity: {intensity}
-              </div>
-
-              {/* Heatmap Details */}
-              <div style={{ marginTop: 16 }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: theme.textPrimary, display: 'flex', alignItems: 'center' }}>
-                  <AiOutlineHeatMap style={{ marginRight: 5, fontSize: 18, color: theme.textPrimary }} />
-                  Heatmap Details
-                </h3>
-                <ul style={{ listStyle: 'none', padding: 0 }}>
-                  {stableAssetData.map(({ id, value }, index) => (
-                    <li
-                      key={index}
-                      style={{
-                        marginBottom: 5,
-                        padding: '10px 14px',
-                        borderRadius: 14,
-                        backgroundColor: darkMode ? '#4a4a4a' : '#ffffff',
-                        fontSize: 14,
-                        fontWeight: 600,
-                        color: theme.textPrimary,
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                        border: `1px solid ${theme.border}`,
-                      }}
-                    >
-                      <span>{id}</span>
-                      <span>
-                        {heatmapParameter === 'time' && `${value} seconds`}
-                        {heatmapParameter === 'count' && `${value} people`}
-                        {heatmapParameter === 'power' && `${value} kWh`}
-                        {heatmapParameter === 'visits' && `${value} visits`}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
             </div>
           </div>
-
-          {/* Summary Stats */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-            <div
-              style={{
-                flex: 1,
-                backgroundColor: theme.summaryBackground1,
-                padding: '14px 18px',
-                borderRadius: 18,
-                boxShadow: '0 4px 10px rgba(0, 123, 255, 0.1)',
-                border: `1px solid ${theme.summaryBorder1}`,
-                textAlign: 'center',
-              }}
-            >
-              <div style={{ fontSize: 14, color: theme.summaryText1, marginBottom: 6 }}>Total Zones</div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: theme.summaryText1 }}>20</div>
-            </div>
-            <div
-              style={{
-                flex: 1,
-                backgroundColor: theme.summaryBackground2,
-                padding: '14px 18px',
-                borderRadius: 18,
-                boxShadow: '0 4px 10px rgba(76, 175, 80, 0.1)',
-                border: `1px solid ${theme.summaryBorder2}`,
-                textAlign: 'center',
-              }}
-            >
-              <div style={{ fontSize: 14, color: theme.summaryText2, marginBottom: 6 }}>Active Assets</div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: theme.summaryText2 }}>20</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+        
+ 
+    
   );
 };
 
