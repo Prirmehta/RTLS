@@ -15,6 +15,7 @@ import { AiOutlineHeatMap } from "react-icons/ai";
 import { Link, useLocation } from 'react-router-dom';
 import { IoSunny } from "react-icons/io5";
 import { HiMoon } from "react-icons/hi2";
+import { GiTrail } from "react-icons/gi";
 
 
 
@@ -187,6 +188,18 @@ const WarehouseHeatmap = () => {
     });
   }, [heatmapParameter, assetType, timeRange]);
 
+  const getLegendColors = (darkMode: boolean) => {
+    return [
+      { color: darkMode ? '#64DA82' : '#BFFF00', label: '0–5' },        // 0–5
+      { color: darkMode ? '#48BF91' : '#93DD45', label: '6–30' },             // 6–30
+      { color: darkMode ? '#00D4FF' : '#FDE34D', label: '31–60' },        // 31–60
+      { color: darkMode ? '#6C5DD3' : '#F4A03F', label: '61–200' },            // 61–200
+      { color: darkMode ? '#FF4D6D' : '#e74c3c', label: '>200' },          // >200
+      { color: darkMode ? '#B2BABB' : '#2c3e50', label: 'Highest' }          // Highest
+    ];
+  };
+  
+
   const legendContainerStyle: React.CSSProperties = {
     position: 'absolute',
     bottom: isMobile ? 10 : 20,
@@ -251,17 +264,20 @@ const WarehouseHeatmap = () => {
 
   const getColorForValue = (value: number, isHighest: boolean) => {
     if (value <= 5) {
-      return '#64DA82';
+      return darkMode ? '#64DA82' : '#BFFF00'; // Mint vs Lime
     } else if (value <= 30) {
-      return '#93DD45'; 
+      return darkMode ? '#48BF91' : '#93DD45'; // Teal vs Parrot Green
     } else if (value <= 60) {
-      return '#FDE34D';
+      return darkMode ? '#00D4FF' : '#FDE34D'; // Aqua vs Yellow
     } else if (value <= 200) {
-      return '#F4A03F';
+      return darkMode ? '#6C5DD3' : '#F4A03F'; // Violet vs Orange
     } else {
-      return isHighest ? '#2c3e50' : '#e74c3c';
+      return isHighest
+        ? darkMode ? '#B2BABB' : '#2c3e50'     // Grey tone for peak
+        : darkMode ? '#FF4D6D' : '#e74c3c';    // Neon pink vs Red
     }
   };
+  
 
   const shouldShowValue = (value: number) => {
     if (selectedColorFilter === null) return true;
@@ -394,10 +410,10 @@ const WarehouseHeatmap = () => {
       let textColor = '#000';
       
       if (value > 200) {
-        textColor = '#fff';
+        textColor = '#000';
       }
       if (value <= 5) {
-        textColor = '#fff';
+        textColor = '#000';
       }
       if (isHighest) {
         textColor = '#fff';
@@ -519,24 +535,39 @@ const WarehouseHeatmap = () => {
           }
         `}
       </style>
-
       <div style={{  
-        padding:'4px 20px', 
-        backgroundColor: theme.cardBackground, 
-
-        position: 'relative' 
+  padding: '4px 20px', 
+  backgroundColor: theme.cardBackground,
+  position: 'relative' 
+}}>
+  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+    <GiTrail 
+      size={isMobile ? 20 : 24} 
+      color={darkMode ? '#00ACC1' : '#990F02'} 
+    />
+    
+    {/* Text block with Phantom Trail + Warehouse */}
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <h1 style={{ 
+        fontSize: isMobile ? '1.4rem' : '1.8rem', 
+        color: darkMode ? '#00ACC1' : '#9A2A2A',
+        margin: 0 
       }}>
-        <h1 style={{ 
-          fontSize: isMobile ? '1.4rem' : '1.8rem', 
-          color: darkMode ? '#FF00FF' : '#1A1A1A'  ,
-          margin: 0 
-        }}>Phantom Trail</h1>
-        <p style={{ 
-          fontSize: isMobile ? '0.8rem' : '1rem',
-          fontWeight:'bolder', 
-          color: '#66CDAA', 
-          margin: 0 
-        }}>Warehouse</p>
+        Phantom Trail
+      </h1>
+      <p style={{ 
+        fontSize: isMobile ? '0.8rem' : '1rem',
+        fontWeight: 'bolder', 
+        color: darkMode ? '#CFD8DC' : '#36454F',
+        margin: 0,
+        marginTop: 2
+      }}>
+        Warehouse
+      </p>
+    </div>
+  </div>
+
+
 
        {/*navbar*/}
 
@@ -963,126 +994,98 @@ const WarehouseHeatmap = () => {
 
               {/* Legends */}
               {heatmapParameter === 'time' && (
-                <div style={legendContainerStyle}>
-                  {[
-                    { color: '#64DA82', label: 'Low Time' },
-                    { color: '#93DD45', label: 'Less Time' },
-                    { color: '#FDE34D', label: 'Moderate' },
-                    { color: '#F4A03F', label: 'High Time' },
-                    { color: '#e74c3c', label: 'Higher Time' },
-                    { color: '#2c3e50', label: 'Highest Time' },
-                  ].map((item, index) => (
-                    <div 
-                      key={index} 
-                      style={{
-                        ...legendItemStyle,
-                        opacity: selectedColorFilter === null || selectedColorFilter === item.color ? 1 : 0.5,
-                      }}
-                      onClick={() => handleLegendClick(item.color)}
-                    >
-                      <div style={{
-                        width: isMobile ? 10 : 14, 
-                        height: isMobile ? 10 : 14, 
-                        borderRadius: '50%',
-                        backgroundColor: item.color,
-                      }}></div>
-                      <span>{item.label}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+  <div style={legendContainerStyle}>
+    {getLegendColors(darkMode).map((item, index) => (
+      <div 
+        key={index}
+        style={{
+          ...legendItemStyle,
+          opacity: selectedColorFilter === null || selectedColorFilter === item.color ? 1 : 0.5,
+        }}
+        onClick={() => handleLegendClick(item.color)}
+      >
+        <div style={{
+          width: isMobile ? 10 : 14,
+          height: isMobile ? 10 : 14,
+          borderRadius: '50%',
+          backgroundColor: item.color,
+        }}></div>
+        <span>{item.label} Time</span>
+      </div>
+    ))}
+  </div>
+)}
 
-              {heatmapParameter === 'count' && (
-                <div style={legendContainerStyle}>
-                  {[
-                    { color: '#64DA82', label: '0-5 people' },
-                    { color: '#93DD45', label: '6–30 people' },
-                    { color: '#FDE34D', label: '31–60 people' },
-                    { color: '#F4A03F', label: '61–200 people' },
-                    { color: '#e74c3c', label: ' >200 people' },
-                    { color: '#2c3e50', label: 'Highest Count' },
-                  ].map((item, index) => (
-                    <div 
-                      key={index} 
-                      style={{
-                        ...legendItemStyle,
-                        opacity: selectedColorFilter === null || selectedColorFilter === item.color ? 1 : 0.5,
-                      }}
-                      onClick={() => handleLegendClick(item.color)}
-                    >
-                      <div style={{
-                        width: isMobile ? 16 : 20, 
-                        height: isMobile ? 16 : 20, 
-                        backgroundColor: item.color,
-                        border: (item.color === '#9b59b6' || item.color === '#2c3e50') ? `2px solid ${darkMode ? '#fff' : '#222'}` : 'none',
-                        clipPath: 'polygon(50% 0%, 95% 38%, 79% 95%, 21% 95%, 5% 38%)'
-                      }}></div>
-                      <span>{item.label}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+{heatmapParameter === 'count' && (
+  <div style={legendContainerStyle}>
+    {getLegendColors(darkMode).map((item, index) => (
+      <div 
+        key={index}
+        style={{
+          ...legendItemStyle,
+          opacity: selectedColorFilter === null || selectedColorFilter === item.color ? 1 : 0.5,
+        }}
+        onClick={() => handleLegendClick(item.color)}
+      >
+        <div style={{
+          width: isMobile ? 16 : 20,
+          height: isMobile ? 16 : 20,
+          backgroundColor: item.color,
+          clipPath: 'polygon(50% 0%, 95% 38%, 79% 95%, 21% 95%, 5% 38%)',
+          border: (item.color === '#2c3e50' || item.color === '#B2BABB') ? `2px solid ${darkMode ? '#fff' : '#222'}` : 'none',
+        }}></div>
+        <span>{item.label} People</span>
+      </div>
+    ))}
+  </div>
+)}
 
-              {heatmapParameter === 'power' && (
-                <div style={legendContainerStyle}>
-                  {[
-                    { color: '#64DA82', label: '0-9 kwh' },
-                    { color: '#93DD45', label: '10–30 kWh' },
-                    { color: '#FDE34D', label: '31–60 kWh' },
-                    { color: '#F4A03F', label: '61–200 kWh' },
-                    { color: '#e74c3c', label: '>200 kwh' },
-                    { color: '#2c3e50', label: 'Highest Power' },
-                  ].map((item, index) => (
-                    <div 
-                      key={index} 
-                      style={{
-                        ...legendItemStyle,
-                        opacity: selectedColorFilter === null || selectedColorFilter === item.color ? 1 : 0.5,
-                      }}
-                      onClick={() => handleLegendClick(item.color)}
-                    >
-                      <div style={{
-                        width: isMobile ? 16 : 20, 
-                        height: isMobile ? 16 : 20, 
-                        backgroundColor: item.color,
-                        border: (item.color === '#9b59b6' || item.color === '#2c3e50') ? `2px solid ${darkMode ? '#fff' : '#222'}` : 'none',
-                        clipPath: 'polygon(50% 0%, 95% 38%, 79% 95%, 21% 95%, 5% 38%)'
-                      }}></div>
-                      <span>{item.label}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+{heatmapParameter === 'power' && (
+  <div style={legendContainerStyle}>
+    {getLegendColors(darkMode).map((item, index) => (
+      <div 
+        key={index}
+        style={{
+          ...legendItemStyle,
+          opacity: selectedColorFilter === null || selectedColorFilter === item.color ? 1 : 0.5,
+        }}
+        onClick={() => handleLegendClick(item.color)}
+      >
+        <div style={{
+          width: isMobile ? 16 : 20, 
+          height: isMobile ? 16 : 20, 
+          backgroundColor: item.color,
+          clipPath: 'polygon(50% 0%, 95% 38%, 79% 95%, 21% 95%, 5% 38%)',
+          border: (item.color === '#2c3e50' || item.color === '#B2BABB') ? `2px solid ${darkMode ? '#fff' : '#222'}` : 'none'
+        }}></div>
+        <span>{item.label} Power</span>
+      </div>
+    ))}
+  </div>
+)}
 
-              {heatmapParameter === 'visits' && (
-                <div style={legendContainerStyle}>
-                  {[
-                    { color: '#64DA82', label: '0-5 Visits' },
-                    { color: '#93DD45', label: '6–30 visits' },
-                    { color: '#FDE34D', label: '31–60 visits' },
-                    { color: '#F4A03F', label: '61–200 visits' },
-                    { color: '#e74c3c', label: '>200 Visits' },
-                    { color: '#2c3e50', label: 'Highest Visits' },
-                  ].map((item, index) => (
-                    <div 
-                      key={index} 
-                      style={{
-                        ...legendItemStyle,
-                        opacity: selectedColorFilter === null || selectedColorFilter === item.color ? 1 : 0.5,
-                      }}
-                      onClick={() => handleLegendClick(item.color)}
-                    >
-                      <div style={{
-                        width: isMobile ? 10 : 14, 
-                        height: isMobile ? 10 : 14, 
-                        backgroundColor: item.color,
-                        border: (item.color === '#9b59b6' || item.color === '#2c3e50') ? `2px solid ${darkMode ? '#fff' : '#222'}` : 'none'
-                      }}></div>
-                      <span>{item.label}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+{heatmapParameter === 'visits' && (
+  <div style={legendContainerStyle}>
+    {getLegendColors(darkMode).map((item, index) => (
+      <div 
+        key={index}
+        style={{
+          ...legendItemStyle,
+          opacity: selectedColorFilter === null || selectedColorFilter === item.color ? 1 : 0.5,
+        }}
+        onClick={() => handleLegendClick(item.color)}
+      >
+        <div style={{
+          width: isMobile ? 10 : 14, 
+          height: isMobile ? 10 : 14, 
+          backgroundColor: item.color,
+          border: (item.color === '#2c3e50' || item.color === '#B2BABB') ? `2px solid ${darkMode ? '#fff' : '#222'}` : 'none'
+        }}></div>
+        <span>{item.label} Visits</span>
+      </div>
+    ))}
+  </div>
+)}
 
               <div style={{ 
                 textAlign: 'center', 
@@ -1264,29 +1267,50 @@ const WarehouseHeatmap = () => {
       </select>
     </div>
 
-    {/* Intensity Slider */}
-    <div>
-      <label style={{ fontWeight: 700, color: theme.textPrimary, display: 'block', marginBottom: 6 }}>Adjust Intensity</label>
-      <input
-        type="range"
-        min={1}
-        max={10}
-        value={intensity}
-        onChange={(e) => setIntensity(Number(e.target.value))}
-        style={{
-          width: '100%',
-          appearance: 'none',
-          height: '8px',
-          borderRadius: '4px',
-          outline: 'none',
-          background: 'linear-gradient(to right, #b9f6ca 0%, #00c853 25%, #ffeb3b 50%, #ff9800 75%, #f44336 100%)',
-        }}
-      />
-      <div style={{ textAlign: 'right', fontSize: 13, fontWeight: 700, marginTop: 6, color: theme.textSecondary }}>
-        Intensity: {intensity}
-      </div>
-    </div>
+   {/* Intensity Slider */}
+<div>
+  <label
+    style={{
+      fontWeight: 700,
+      color: theme.textPrimary,
+      display: 'block',
+      marginBottom: 6,
+    }}
+  >
+    Adjust Intensity
+  </label>
+  
+  <input
+    type="range"
+    min={1}
+    max={10}
+    value={intensity}
+    onChange={(e) => setIntensity(Number(e.target.value))}
+    style={{
+      width: '100%',
+      appearance: 'none',
+      height: '8px',
+      borderRadius: '4px',
+      outline: 'none',
+      background: darkMode
+        ? 'linear-gradient(to right, #64DA82 0%, #48BF91 25%, #00D4FF 50%, #6C5DD3 75%, #FF4D6D 100%)'
+        : 'linear-gradient(to right, #BFFF00 0%, #93DD45 25%, #FDE34D 50%, #F4A03F 75%, #e74c3c 100%)',
+    }}
+  />
+
+  <div
+    style={{
+      textAlign: 'right',
+      fontSize: 13,
+      fontWeight: 700,
+      marginTop: 6,
+      color: theme.textSecondary,
+    }}
+  >
+    Intensity: {intensity}
   </div>
+</div>
+</div>
 
   {/* Box 3: Asset Type + Heatmap Details */}
   <div style={{

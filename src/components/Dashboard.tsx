@@ -104,7 +104,7 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
     return { x: zone.x, y: zone.y };
   }
 
-  function getNearestZoneEndpoint(currentX, currentY) {
+  function getNearestZoneEndpoint(currentX: number, currentY: number) {
     let nearest = ZONES[0];
     let minDist = Infinity;
     ZONES.forEach((zone) => {
@@ -119,7 +119,7 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
     return { x: nearest.x, y: nearest.y, zoneName: nearest.name };
   }
 
-  function generateRandomPath(assetId, occupiedCoords = new Set()) {
+  function generateRandomPath(assetId: string, occupiedCoords: Set<string> = new Set()) {
     const path = [];
     const stepSize = 30;
     let { x, y } = getRandomZoneStart();
@@ -205,7 +205,7 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
     return path;
   }
 
-  const handleCheckboxChange = (assetId, checked) => {
+  const handleCheckboxChange = (assetId: string, checked: boolean) => {
     const newCheckedAssets = new Set(checkedAssets);
     const newCheckedAssetsPaths = { ...checkedAssetsPaths };
 
@@ -222,8 +222,8 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
   };
 
   const initializeAllAssetsPaths = () => {
-    const paths = {};
-    assetMap['All Assets'].forEach((id) => {
+    const paths: Record<string, { x: number; y: number }[]> = {};
+    assetMap['All Assets'].forEach((id: string) => {
       paths[id] = generateRandomPath(id);
     });
     setAllAssetsPaths(paths);
@@ -245,29 +245,39 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
   }, []);
 
 
-  const getTrailColor = (type = assetType) => {
+  const getTrailColor = (type = assetType, darkMode = false) => {
     switch (type) {
+    
       case 'Forklifts':
       case 'Forklift A':
       case 'Forklift B':
-        return '#800080';
+        return darkMode ? '#BF00FF' : '#BF00FF'; // Neon Purple : Dark Purple
+  
+    
       case 'Cranes':
       case 'Crane A':
       case 'Crane B':
-        return '#ff6600';
+        return darkMode ? '#FFA500' : '#CC5500'; // Neon Orange : Dark Orange
+  
+     
       case 'Carts':
       case 'Cart X':
       case 'Cart Y':
-        return '#ff69b4';
+        return darkMode ? '#FF69B4' : '#D11A7C'; // Neon Pink : Dark Hot Pink
+  
+     
       case 'Operators/Workers':
       case 'Worker 1':
       case 'Worker 2':
-        return '#f1c40f';
+        return darkMode ? '#FFEB3B' : '#F1C40F'; // Bright Yellow : Gold Yellow
+  
+     
       default:
-        return '#007bff';
+        return darkMode ? '#66D9FF' : '#007BFF'; // Neon Blue : Base Blue
     }
   };
-
+  
+  
   useEffect(() => {
     setTrailPath(generateRandomPath());
   }, []);
@@ -320,7 +330,7 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
     }
   };
 
-  const handleAssetTypeChange = (newType) => {
+  const handleAssetTypeChange = (newType: string) => {
     setIsPlaying(false);
     setCurrentIndex(0);
     setTrailTime(0);
@@ -336,7 +346,7 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
     }
   };
 
-  const handleAssetClick = (id) => {
+  const handleAssetClick = (id: string) => {
     if (selectedAssetId === id) {
       setSelectedAssetId(null);
       setMidPanelAsset(null);
@@ -356,7 +366,7 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
     }
   };
 
-  const handleDetailsClick = (assetId) => {
+  const handleDetailsClick = (assetId: string) => {
     if (assetType === 'All Assets') {
       setMidPanelAsset(assetMap['All Assets']);
     } else {
@@ -409,8 +419,65 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
     userSelect: 'none',
     transition: 'color 0.3s ease',
   };
+  const gradientStyle = {
+    background: darkMode
+      ? 'linear-gradient(90deg, #C86CE3 0%, #41BFEF 100%)'  // Dark Mode
+      : 'linear-gradient(90deg, #9B2FC2 0%, #3AB6E7 100%)',  // Light Mode
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent'
+  };
+  
   const isSelected = location.pathname === '/';
- 
+  <style>
+  {`
+  @media (max-width: 768px) {
+    .header {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      padding: 8px 16px !important;
+    }
+  
+    .nav-links {
+      position: static !important;
+      margin-top: 10px !important;
+      gap: 12px !important;
+      flex-wrap: wrap !important;
+    }
+  
+    .map-container {
+      flex-basis: 100% !important;
+      padding: 8px !important;
+      min-height: 300px !important;
+    }
+  
+    .zoom-controls {
+      bottom: 20px !important;
+      right: 20px !important;
+      flex-direction: column !important;
+      gap: 10px !important;
+    }
+  
+    .legend {
+      left: 10px !important;
+      bottom: 10px !important;
+      gap: 10px !important;
+      padding: 8px 10px !important;
+      font-size: 11px !important;
+      flex-direction: column !important;
+    }
+  
+    .active-indicators {
+      top: 10px !important;
+      right: 10px !important;
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      font-size: 12px !important;
+      gap: 8px !important;
+    }
+  }
+  `}
+  </style>
+  
   return (
     <div style={{
       height: '100vh',
@@ -426,24 +493,28 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
       left: isFullScreen ? 0 : 'auto',
       zIndex: isFullScreen ? 9999 : 'auto',
     }}>
+
+      
     
       {/* Header */}
       <div style={{
-        textAlign: 'left',
-        padding: '4px 20px',
-        backgroundColor: theme.cardBackground,
-        boxShadow: darkMode ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.05)', 
-        display: isFullScreen ? 'none' : 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-      }}>
+  textAlign: 'left',
+  padding: '4px 20px',
+  backgroundColor: theme.cardBackground,
+  boxShadow: darkMode ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.05)', 
+  display: isFullScreen ? 'none' : 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  flexWrap: 'wrap',
+}} className="header">
+
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <GiTrail size={28} color={theme.textPrimary} />
+          <GiTrail size={28}  color={darkMode ? '#39FF14' : '#1F51FF'} />
           <div>
             <h1 style={{
               fontSize: '1.8rem',
-              color: '#BF00FF',
+              color: darkMode ? '	#39FF14' : '#1F51FF',
               margin: 0,
               fontWeight: 600,
               fontFamily: 'Libertinus Math'
@@ -452,7 +523,7 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
             </h1>
             <p style={{
               fontSize: '1rem',
-              color: '#00FFFF',
+              color: darkMode ? '#F28D3C' : '#39FF14',
               margin: 0,
               fontWeight: 700,
               fontFamily: 'Libertinus Math'
@@ -461,22 +532,21 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
             </p>
           </div>
         </div>
+        <div
+  style={{
+    position: 'absolute',
+    top: 20,
+    right: 100,
+    zIndex: 1000,
+    display: 'flex',
+    gap: '20px',
+    alignItems: 'center',
+    fontWeight: 700,
+    fontSize: 15
+  }}
+  className="nav-links"
+>
 
-
-      
-   
-
-        <div style={{
-      position: 'absolute',
-      top: 20,
-      right: 100,
-      zIndex: 1000,
-      display: 'flex',
-      gap: '20px',
-      alignItems: 'center',
-      fontWeight: 700,
-      fontSize: 15
-    }}>
       {/* Action Trail */}
       
       <Link
@@ -496,8 +566,6 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
   <FaMapMarkerAlt size={14} />
   Action Trail
 </Link>
-
-
       {/* Heatmap with Dropdown */}
       <div
         ref={heatmapRef}
@@ -565,17 +633,7 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
           </div>
         )}
       </div>
-    </div>
-
-
-
-
-    
-
-
-
-
-
+</div>
 {/* Dark Mode Toggle */}
 <div
   onClick={() => setDarkMode(!darkMode)}
@@ -647,11 +705,6 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
     </div>
   </div>
 </div>
-
-          
-          
-  
-
         </div>
  
       <div style={{ 
@@ -662,15 +715,17 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
       }}>
         {/* Map Container */}
         <div style={{
-          flexBasis: isFullScreen ? '100%' : window.innerWidth <= 768 ? '60%' : '75%',
-          padding: window.innerWidth <= 768 ? 8 : 16,
-          backgroundColor: theme.cardBackground,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          position: 'relative',
-          minHeight: window.innerWidth <= 768 ? '300px' : 'auto'
-        }}>
+  flexBasis: isFullScreen ? '100%' : window.innerWidth <= 768 ? '50vh' : '75%',
+  padding: window.innerWidth <= 768 ? 8 : 16,
+  backgroundColor: theme.cardBackground,
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  position: 'relative',
+  minHeight: window.innerWidth <= 768 ? '50vh' : 'auto',
+  overflow: scale < 1 ? 'auto' : 'hidden'
+}} className="map-container">
+
           <div
             id="warehouse-map-container"
             style={{
@@ -690,7 +745,7 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
           >
 
             {/* Active Indicators (Top Right of Grid) */}
-<div style={{
+            <div style={{
   position: 'absolute',
   top: 20,
   right: 30,
@@ -701,7 +756,8 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
   fontSize: 13,
   fontWeight: 500,
   color: darkMode ? '#ccc' : '#333',
-}}>
+}} className="active-indicators">
+
   {/* Green blinking dot + Active Assets */}
   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
     <div style={{
@@ -737,7 +793,7 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
 `}
 </style>
 
-          <div style={{
+<div style={{
   position: 'absolute',
   bottom: 30,
   right: 30,
@@ -745,7 +801,8 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
   display: 'flex',
   gap: '14px',
   alignItems: 'center',
-}}>
+}} className="zoom-controls">
+
   {/* Zoom In */}
   <FaSearchPlus
     style={{
@@ -1058,31 +1115,32 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
 
             {/* LEGEND */}
             <div style={{
-              position: 'absolute',
-              bottom: 20,
-              left: 20,
-              fontSize: 12,
-              color: theme.textPrimary,
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '20px',
-              alignItems: 'center',
-              backgroundColor: darkMode ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.9)',
-              padding: '10px 15px',
-              borderRadius: 8,
-              backdropFilter: 'blur(5px)',
-            }}>
+  position: 'absolute',
+  bottom: 20,
+  left: 20,
+  fontSize: 12,
+  color: theme.textPrimary,
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: '20px',
+  alignItems: 'center',
+  backgroundColor: darkMode ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.9)',
+  padding: '10px 15px',
+  borderRadius: 8,
+  backdropFilter: 'blur(5px)',
+}} className="legend">
+
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ color: 'purple', fontSize: 10, marginRight: 6 }}>⬤</span> Forklifts
+                <span style={{ color: '#BF00FF', fontSize: 10, marginRight: 6 }}>⬤</span> Forklifts
               </div>
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ color: '#EF6537', fontSize: 10, marginRight: 6 }}>⬤</span> Cranes
+                <span style={{ color: '#CC5500', fontSize: 10, marginRight: 6 }}>⬤</span> Cranes
               </div>
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ color: '#ED67B3', fontSize: 10, marginRight: 6 }}>⬤</span> Carts
+                <span style={{ color: '#D11A7C', fontSize: 10, marginRight: 6 }}>⬤</span> Carts
               </div>
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ color: '#F1C545', fontSize: 10, marginRight: 6 }}>⬤</span> Operators/Workers
+                <span style={{ color: '#F1C40F', fontSize: 10, marginRight: 6 }}>⬤</span> Operators/Workers
               </div>
             </div>
           </div>
@@ -1093,16 +1151,16 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
           <div 
           className={darkMode ? 'mid-panel dark-scroll' : 'mid-panel light-scroll'}
           style={{
-            flexBasis: window.innerWidth <= 768 ? '100%' : '18%',
-            backgroundColor: theme.cardBackground,
-           
-            padding: 16,
-            
-            overflowY: 'auto',
-            position: 'relative',
-            maxHeight: window.innerWidth <= 768 ? '300px' : 'auto'
+             flexBasis: window.innerWidth <= 768 ? '50vh' : '18%',
+             backgroundColor: theme.cardBackground,
+             
+             padding: 16,
+             
+             overflowY: 'auto',
+             position: 'relative',
+             maxHeight: window.innerWidth <= 768 ? '50vh' : 'auto'
           }}>
-            <button
+          <button
               onClick={() => setShowMidPanel(false)}
               style={{
                 position: 'absolute',
@@ -1115,7 +1173,7 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
                 color: theme.textSecondary,
               }}
               onMouseEnter={e => (e.currentTarget.style.color = darkMode ? '#4a9eff' : '#007bff')}
-              onMouseLeave={e => (e.currentTarget.style.color = theme.textSecondary)}
+              onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = theme.textSecondary; }}
             >
               <FaTimes />
             </button>
