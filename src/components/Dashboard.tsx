@@ -30,24 +30,24 @@ const LiveTrailDashboard = () => {
   const location = useLocation();
 
   const [assetType, setAssetType] = useState('Forklifts');
-  const [selectedAssetId, setSelectedAssetId] = useState(null);
-  const [checkedAssets, setCheckedAssets] = useState(new Set());
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+  const [checkedAssets, setCheckedAssets] = useState<Set<string>>(new Set());
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
-  const [trailTime, setTrailTime] = useState(0);
+  const [trailTime, setTrailTime] = useState<number>(0);
   const [timeRange, setTimeRange] = useState('1 Hour');
   const [scale, setScale] = useState(1); // Default zoom out a little
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [showMidPanel, setShowMidPanel] = useState(false);
-  const [midPanelAsset, setMidPanelAsset] = useState(null);
+  const [midPanelAsset, setMidPanelAsset] = useState<string | string[] | null>(null);
   const intervalRef = useRef(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  const [allAssetsPaths, setAllAssetsPaths] = useState({});
-  const [checkedAssetsPaths, setCheckedAssetsPaths] = useState({});
-  const [trailPath, setTrailPath] = useState([]);
+  const [allAssetsPaths, setAllAssetsPaths] = useState<Record<string, { x: number; y: number; popup?: boolean; zoneName?: string }[]>>({});
+  const [checkedAssetsPaths, setCheckedAssetsPaths] = useState<Record<string, { x: number; y: number; popup?: boolean; zoneName?: string }[]>>({});
+  const [trailPath, setTrailPath] = useState<{ x: number; y: number; popup?: boolean; zoneName?: string }[]>([]);
   const [heatmapOption, setHeatmapOption] = useState('');
 const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
 
@@ -73,14 +73,35 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
   const toggleDarkMode = () => setDarkMode(prev => !prev);
 
   const handleStartPlayback = () => {
-    console.log("Playback started from:", startDate, "to", endDate);
+    if (checkedAssets.size === 0) {
+      alert("Please select at least one asset to play the trail.");
+      return;
+    }
+  
+    // Only generate paths if it's the first time or after reset
+    const newCheckedAssetsPaths: Record<string, { x: number; y: number; popup?: boolean; zoneName?: string }[]> = { ...checkedAssetsPaths };
+  
+    checkedAssets.forEach(assetId => {
+      if (!newCheckedAssetsPaths[assetId]) {
+        newCheckedAssetsPaths[assetId] = generateRandomPath(assetId);
+      }
+    });
+  
+    setCheckedAssetsPaths(newCheckedAssetsPaths);
+    setIsPlaying(true);
   };
+  
 
   const handleStopPlayback = () => {
-    console.log("Playback stopped.");
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    setIsPlaying(false);
   };
-
-  const assetMap = {
+  
+  
+  const assetMap: Record<string, string[]> = {
     Forklifts: ['Forklift A', 'Forklift B'],
     Cranes: ['Crane A', 'Crane B'],
     Carts: ['Cart X', 'Cart Y'],
@@ -119,110 +140,122 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
     return { x: nearest.x, y: nearest.y, zoneName: nearest.name };
   }
 
-  function generateRandomPath(assetId: string, occupiedCoords: Set<string> = new Set()) {
-    const path = [];
-    const stepSize = 30;
-    let { x, y } = getRandomZoneStart();
-    path.push({ x, y });
-    occupiedCoords.add(`${x},${y}`);
+  function generateRandomPath(
+  assetId: string,
+  occupiedCoords: Set<string> = new Set<string>()
+): { x: number; y: number; popup?: boolean; zoneName?: string }[] {
+  const path: { x: number; y: number; popup?: boolean; zoneName?: string }[] = [];
+  const stepSize = 30;
 
-   
+  let { x, y } = getRandomZoneStart();
+  path.push({ x, y });
+  occupiedCoords.add(`${x},${y}`);
 
-    const isValid = (nx, ny) =>
-      nx >= 10 &&
-      nx <= 790 &&
-      ny >= 10 &&
-      ny <= 490 &&
-      !occupiedCoords.has(`${nx},${ny}`);
+  const isValid = (nx: number, ny: number) =>
+    nx >= 10 &&
+    nx <= 790 &&
+    ny >= 10 &&
+    ny <= 490 &&
+    !occupiedCoords.has(`${nx},${ny}`);
 
-    const visitedZones = new Set();
-    let currentZoneIndex = ZONES.findIndex(zone => Math.abs(zone.x - x) < 30 && Math.abs(zone.y - y) < 30);
-    if (currentZoneIndex !== -1) visitedZones.add(currentZoneIndex);
+  const visitedZones = new Set<number>();
+  let currentZoneIndex = ZONES.findIndex(
+    (zone) => Math.abs(zone.x - x) < 30 && Math.abs(zone.y - y) < 30
+  );
+  if (currentZoneIndex !== -1) visitedZones.add(currentZoneIndex);
 
-    for (let i = 0; i < 30; i++) {
-      let targetZone = null;
-      const unvisitedZones = ZONES.filter((_, index) => !visitedZones.has(index));
-      
-      if (unvisitedZones.length > 0) {
-        targetZone = unvisitedZones[Math.floor(Math.random() * unvisitedZones.length)];
-        const zoneIndex = ZONES.indexOf(targetZone);
-        visitedZones.add(zoneIndex);
-      }
+  for (let i = 0; i < 30; i++) {
+    let targetZone: { name: string; x: number; y: number } | null = null;
+    const unvisitedZones = ZONES.filter((_, index) => !visitedZones.has(index));
 
-      let directions;
-      if (targetZone) {
-        const dx = targetZone.x > x ? stepSize : targetZone.x < x ? -stepSize : 0;
-        const dy = targetZone.y > y ? stepSize : targetZone.y < y ? -stepSize : 0;
-        directions = [
-          { dx, dy },
-          { dx: stepSize, dy: 0 },
-          { dx: -stepSize, dy: 0 },
-          { dx: 0, dy: stepSize },
-          { dx: 0, dy: -stepSize },
-          { dx: stepSize, dy: stepSize },
-          { dx: -stepSize, dy: stepSize },
-          { dx: stepSize, dy: -stepSize },
-          { dx: -stepSize, dy: -stepSize }
-        ];
-      } else {
-        directions = [
-          { dx: stepSize, dy: 0 },
-          { dx: -stepSize, dy: 0 },
-          { dx: 0, dy: stepSize },
-          { dx: 0, dy: -stepSize },
-          { dx: stepSize, dy: stepSize },
-          { dx: -stepSize, dy: stepSize },
-          { dx: stepSize, dy: -stepSize },
-          { dx: -stepSize, dy: -stepSize }
-        ];
-      }
+    if (unvisitedZones.length > 0) {
+      targetZone = unvisitedZones[Math.floor(Math.random() * unvisitedZones.length)];
+      const zoneIndex = ZONES.indexOf(targetZone);
+      visitedZones.add(zoneIndex);
+    }
 
-      const shuffled = directions.sort(() => 0.5 - Math.random());
-      let moved = false;
+    let directions: { dx: number; dy: number }[];
+    if (targetZone) {
+      const dx = targetZone.x > x ? stepSize : targetZone.x < x ? -stepSize : 0;
+      const dy = targetZone.y > y ? stepSize : targetZone.y < y ? -stepSize : 0;
+      directions = [
+        { dx, dy },
+        { dx: stepSize, dy: 0 },
+        { dx: -stepSize, dy: 0 },
+        { dx: 0, dy: stepSize },
+        { dx: 0, dy: -stepSize },
+        { dx: stepSize, dy: stepSize },
+        { dx: -stepSize, dy: stepSize },
+        { dx: stepSize, dy: -stepSize },
+        { dx: -stepSize, dy: -stepSize },
+      ];
+    } else {
+      directions = [
+        { dx: stepSize, dy: 0 },
+        { dx: -stepSize, dy: 0 },
+        { dx: 0, dy: stepSize },
+        { dx: 0, dy: -stepSize },
+        { dx: stepSize, dy: stepSize },
+        { dx: -stepSize, dy: stepSize },
+        { dx: stepSize, dy: -stepSize },
+        { dx: -stepSize, dy: -stepSize },
+      ];
+    }
 
-      for (const dir of shuffled) {
-        const nx = x + dir.dx;
-        const ny = y + dir.dy;
-        if (isValid(nx, ny)) {
-          x = nx;
-          y = ny;
-          path.push({ x, y });
-          occupiedCoords.add(`${x},${y}`);
-          moved = true;
-          break;
-        }
-      }
+    const shuffled = directions.sort(() => 0.5 - Math.random());
+    let moved = false;
 
-      if (!moved) {
+    for (const dir of shuffled) {
+      const nx = x + dir.dx;
+      const ny = y + dir.dy;
+      if (isValid(nx, ny)) {
+        x = nx;
+        y = ny;
+        path.push({ x, y });
+        occupiedCoords.add(`${x},${y}`);
+        moved = true;
         break;
       }
     }
 
-    const end = getNearestZoneEndpoint(x, y);
-    path.push({ x: end.x, y: end.y, popup: true, zoneName: end.zoneName });
-    occupiedCoords.add(`${end.x},${end.y}`);
-
-    return path;
+    if (!moved) {
+      break;
+    }
   }
 
+  const end = getNearestZoneEndpoint(x, y);
+  path.push({ x: end.x, y: end.y, popup: true, zoneName: end.zoneName });
+  occupiedCoords.add(`${end.x},${end.y}`);
+
+  return path;
+}
+
+
+
+
   const handleCheckboxChange = (assetId: string, checked: boolean) => {
-    const newCheckedAssets = new Set(checkedAssets);
-    const newCheckedAssetsPaths = { ...checkedAssetsPaths };
-
-    if (checked) {
-      newCheckedAssets.add(assetId);
-      newCheckedAssetsPaths[assetId] = generateRandomPath(assetId);
-    } else {
-      newCheckedAssets.delete(assetId);
-      delete newCheckedAssetsPaths[assetId];
+  const newCheckedAssets = new Set(checkedAssets);
+  const updatedPaths = { ...checkedAssetsPaths };
+  
+  if (checked) {
+    newCheckedAssets.add(assetId);
+    
+    // Only generate path if it doesn't already exist
+    if (!updatedPaths[assetId]) {
+      const fullPath = generateRandomPath(assetId);
+      updatedPaths[assetId] = fullPath;
     }
-
-    setCheckedAssets(newCheckedAssets);
-    setCheckedAssetsPaths(newCheckedAssetsPaths);
-  };
-
+    
+  } else {
+    newCheckedAssets.delete(assetId);
+    // Keep the path in memory - don't delete it
+  }
+  
+  setCheckedAssets(newCheckedAssets);
+  setCheckedAssetsPaths(updatedPaths);
+};
   const initializeAllAssetsPaths = () => {
-    const paths: Record<string, { x: number; y: number }[]> = {};
+    const paths: Record<string, { x: number; y: number; popup?: boolean; zoneName?: string }[]> = {};
     assetMap['All Assets'].forEach((id: string) => {
       paths[id] = generateRandomPath(id);
     });
@@ -235,8 +268,8 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
     const heatmapRef = useRef(null);
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (heatmapRef.current && !heatmapRef.current.contains(e.target)) {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (heatmapRef.current && e.target instanceof Node && (heatmapRef.current as any).contains && !(heatmapRef.current as any).contains(e.target)) {
         setIsHeatmapHovered(false);
       }
     };
@@ -279,7 +312,7 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
   
   
   useEffect(() => {
-    setTrailPath(generateRandomPath());
+    setTrailPath(generateRandomPath(selectedAssetId || ''));
   }, []);
 
   useEffect(() => {
@@ -294,10 +327,14 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
     if (isPlaying) {
       intervalRef.current = setInterval(() => {
         setCurrentIndex((prev) => {
-          const maxLength =
-            assetType === 'All Assets'
-              ? Math.min(...Object.values(allAssetsPaths).map((p) => p.length))
-              : trailPath.length;
+          let maxLength = 0;
+          if (Array.from(checkedAssets).length > 0) {
+            maxLength = Math.min(...Object.values(checkedAssetsPaths).map((p) => (p as any[]).length));
+          } else if (assetType === 'All Assets') {
+            maxLength = Math.min(...Object.values(allAssetsPaths).map((p) => (p as any[]).length));
+          } else {
+            maxLength = trailPath.length;
+          }
 
           if (prev < maxLength - 1) {
             setTrailTime((t) => t + 1);
@@ -315,67 +352,77 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isPlaying, speed, allAssetsPaths, trailPath]);
+  }, [isPlaying, speed, allAssetsPaths, trailPath, checkedAssetsPaths, checkedAssets]);
 
   const resetTrail = () => {
-    setIsPlaying(false);
-    setTrailTime(0);
-    setCurrentIndex(0);
-    setTrailPath(generateRandomPath());
-    setSelectedAssetId(null);
-    setMidPanelAsset(null);
-    setShowMidPanel(false);
-    if (assetType === 'All Assets') {
-      initializeAllAssetsPaths();
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
-  };
-
-  const handleAssetTypeChange = (newType: string) => {
+  
     setIsPlaying(false);
-    setCurrentIndex(0);
     setTrailTime(0);
-    setTrailPath(generateRandomPath());
-    setAssetType(newType);
+    setCurrentIndex(0);
+    setTrailPath(generateRandomPath(''));
     setSelectedAssetId(null);
     setMidPanelAsset(null);
     setShowMidPanel(false);
     setCheckedAssets(new Set());
     setCheckedAssetsPaths({});
-    if (newType === 'All Assets') {
-      initializeAllAssetsPaths();
-    }
-  };
-
-  const handleAssetClick = (id: string) => {
-    if (selectedAssetId === id) {
-      setSelectedAssetId(null);
-      setMidPanelAsset(null);
-      setShowMidPanel(false);
-      setTrailPath([]);
-      setCurrentIndex(0);
-      setTrailTime(0);
-      setIsPlaying(false);
-    } else {
-      setSelectedAssetId(id);
-      setMidPanelAsset(null);
-      setShowMidPanel(false);
-      setTrailPath(generateRandomPath());
-      setCurrentIndex(0);
-      setTrailTime(0);
-      setIsPlaying(false);
-    }
-  };
-
-  const handleDetailsClick = (assetId: string) => {
+  
     if (assetType === 'All Assets') {
-      setMidPanelAsset(assetMap['All Assets']);
+      initializeAllAssetsPaths();
     } else {
-      setMidPanelAsset(assetId);
+      setAllAssetsPaths({});
     }
-    setShowMidPanel(true);
   };
+  
+  const handleAssetTypeChange = (newType: string) => {
+  setIsPlaying(false);
+  setCurrentIndex(0);
+  setTrailTime(0);
+  setTrailPath(generateRandomPath(''));
+  setAssetType(newType);
+  setSelectedAssetId(null);
+  setMidPanelAsset(null);
+  setShowMidPanel(false);
+  setCheckedAssets(new Set());
+  setCheckedAssetsPaths({});
+  if (newType === 'All Assets') {
+    initializeAllAssetsPaths();
+  }
+};
 
-  const assetDetails = (id) => ({
+  const handleAssetClick = (id: string): void => {
+  if (selectedAssetId === id) {
+    setSelectedAssetId(null);
+    setMidPanelAsset(null);
+    setShowMidPanel(false);
+    setTrailPath(selectedAssetId ? generateRandomPath(selectedAssetId) : []);
+    setCurrentIndex(0);
+    setTrailTime(0);
+    setIsPlaying(false);
+  } else {
+    setSelectedAssetId(id);
+    setMidPanelAsset(null);
+    setShowMidPanel(false);
+    setTrailPath(generateRandomPath(''));
+    setCurrentIndex(0);
+    setTrailTime(0);
+    setIsPlaying(false);
+  }
+};
+
+  const handleDetailsClick = (assetId: string): void => {
+  if (assetType === 'All Assets') {
+    setMidPanelAsset(assetMap['All Assets']);
+  } else {
+    setMidPanelAsset(assetId);
+  }
+  setShowMidPanel(true);
+};
+
+  const assetDetails = (id: string | null) => ({
     id: id || '-',
     name: assetType,
     distance: id ? `${currentIndex * 15} m` : '0 m',
@@ -392,7 +439,7 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
   
   
 
-  const getAssetItemStyle = (id) => ({
+  const getAssetItemStyle = (id: string | null) => ({
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -406,7 +453,7 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
     borderRadius: 12,
     boxShadow: selectedAssetId === id ? theme.shadow : 'none',
     transition: 'all 0.3s ease',
-    userSelect: 'none',
+    userSelect: 'none' as const,
     fontFamily: 'Libertinus Math'
   });
 
@@ -416,7 +463,7 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
     fontSize: 13,
     textDecoration: 'underline',
     fontWeight: 600,
-    userSelect: 'none',
+    userSelect: 'none' as const,
     transition: 'color 0.3s ease',
   };
   const gradientStyle = {
@@ -485,36 +532,33 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
-       fontFamily: 'Libertinus Math',
+      fontFamily: 'Libertinus Math',
       backgroundColor: theme.background,
       color: theme.textPrimary,
       position: isFullScreen ? 'fixed' : 'relative',
       top: isFullScreen ? 0 : 'auto',
       left: isFullScreen ? 0 : 'auto',
-      zIndex: isFullScreen ? 9999 : 'auto',
+      zIndex: isFullScreen ? 9999 : 'auto'
     }}>
 
-      
-    
       {/* Header */}
       <div style={{
-  textAlign: 'left',
-  padding: '4px 20px',
-  backgroundColor: theme.cardBackground,
-  boxShadow: darkMode ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.05)', 
-  display: isFullScreen ? 'none' : 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  flexWrap: 'wrap',
-}} className="header">
-
+        textAlign: 'left',
+        padding: '4px 20px',
+        backgroundColor: theme.cardBackground,
+        boxShadow: darkMode ? '0 2px 4px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.05)',
+        display: isFullScreen ? 'none' : 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+      }} className="header">
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <GiTrail size={28}  color={darkMode ? '#39FF14' : '#1F51FF'} />
+          <GiTrail size={28} color={darkMode ? '#39FF14' : '#1F51FF'} />
           <div>
             <h1 style={{
               fontSize: '1.8rem',
-              color: darkMode ? '	#39FF14' : '#1F51FF',
+              color: darkMode ? '#39FF14' : '#1F51FF',
               margin: 0,
               fontWeight: 600,
               fontFamily: 'Libertinus Math'
@@ -532,199 +576,201 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
             </p>
           </div>
         </div>
-        <div
-  style={{
-    position: 'absolute',
-    top: 20,
-    right: 100,
-    zIndex: 1000,
-    display: 'flex',
-    gap: '20px',
-    alignItems: 'center',
-    fontWeight: 700,
-    fontSize: 15
-  }}
-  className="nav-links"
->
 
-      {/* Action Trail */}
-      
-      <Link
-  to="/"
-  style={{
-    display: 'flex',
-    alignItems: 'center',
-    fontWeight: 700,
-    gap: '5px',
-    marginTop: 4,
-    textDecoration: location.pathname === '/' ? 'underline' : 'none',
-    color: '#4B9DF7', // Always blue
-    cursor: 'pointer',
-    transition: 'color 0.3s ease',
-  }}
->
-  <FaMapMarkerAlt size={14} />
-  Action Trail
-</Link>
-      {/* Heatmap with Dropdown */}
-      <div
-        ref={heatmapRef}
-        onMouseEnter={() => setIsHeatmapHovered(true)}
-        style={{ position: 'relative', cursor: 'pointer' }}
-      >
         <div
           style={{
+            position: 'absolute',
+            top: 20,
+            right: 100,
+            zIndex: 1000,
             display: 'flex',
+            gap: '20px',
             alignItems: 'center',
-            gap: '5px',
-            marginTop:3,
-            color: isHeatmapHovered || location.pathname === '/heatmap' ? '#F28D3C' : (darkMode ? '#ffffff' : '#000000'),
-            textDecoration: location.pathname === '/heatmap' ? 'underline' : 'none',
-            transition: 'color 0.3s ease',
+            fontWeight: 700,
+            fontSize: 15
+          }}
+          className="nav-links"
+        >
+
+          {/* Action Trail */}
+          <Link
+            to="/"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              fontWeight: 700,
+              gap: '5px',
+              marginTop: 4,
+              textDecoration: location.pathname === '/' ? 'underline' : 'none',
+              color: '#4B9DF7',
+              cursor: 'pointer',
+              transition: 'color 0.3s ease',
+            }}
+          >
+            <FaMapMarkerAlt size={14} />
+            Action Trail
+          </Link>
+
+          {/* Heatmap with Dropdown */}
+          <div
+            ref={heatmapRef}
+            onMouseEnter={() => setIsHeatmapHovered(true)}
+            style={{ position: 'relative', cursor: 'pointer' }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                marginTop: 3,
+                color: isHeatmapHovered || location.pathname === '/heatmap'
+                  ? '#F28D3C'
+                  : (darkMode ? '#ffffff' : '#000000'),
+                textDecoration: location.pathname === '/heatmap' ? 'underline' : 'none',
+                transition: 'color 0.3s ease',
+              }}
+            >
+              <FaFire size={14} />
+              Heatmap ▾
+            </div>
+
+            {isHeatmapHovered && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
+                border: `1px solid ${darkMode ? '#555' : '#ddd'}`,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                borderRadius: 6,
+                marginTop: 6,
+                padding: '8px 0',
+                minWidth: 180,
+                display: 'flex',
+                flexDirection: 'column',
+                zIndex: 9999,
+              }}>
+                {['Dwell Time', 'Visit Frequency', 'Peak Occupancy', 'Power Consumption'].map(option => (
+                  <Link
+                    key={option}
+                    to="/heatmap"
+                    onClick={() => {
+                      setHeatmapOption(option);
+                      setIsHeatmapHovered(false);
+                    }}
+                    style={{
+                      textDecoration: heatmapOption === option ? 'underline' : 'none',
+                      padding: '8px 16px',
+                      color: heatmapOption === option ? '#F28D3C' : (darkMode ? '#fff' : '#000'),
+                      backgroundColor: heatmapOption === option ? '#F28D3C22' : 'transparent',
+                      fontSize: '14px',
+                      whiteSpace: 'nowrap',
+                      cursor: 'pointer',
+                      display: 'block',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.color = '#F28D3C'}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.color = heatmapOption === option
+                        ? '#F28D3C'
+                        : (darkMode ? '#fff' : '#000');
+                    }}
+                  >
+                    {option}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Dark Mode Toggle */}
+        <div
+          onClick={() => setDarkMode(!darkMode)}
+          style={{
+            width: '52px',
+            height: '28px',
+            borderRadius: '999px',
+            position: 'relative',
+            cursor: 'pointer',
+            overflow: 'hidden',
+            background: darkMode
+              ? 'linear-gradient(135deg, #3b0764, #1e40af)'
+              : 'linear-gradient(135deg, #fde68a, #f59e0b)',
+            transition: 'background 0.4s ease-in-out',
+            boxShadow: 'inset 0 0 6px rgba(0,0,0,0.2)',
+            marginLeft: '5px',
           }}
         >
-          <FaFire size={14} />
-          Heatmap ▾
-        </div>
-
-        {/* Dropdown menu */}
-        {isHeatmapHovered && (
-          <div style={{
-            position: 'absolute',
-            top: '100%',
-            right: 0,
-            backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
-            border: `1px solid ${darkMode ? '#555' : '#ddd'}`,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-            borderRadius: 6,
-            marginTop: 6,
-            padding: '8px 0',
-            minWidth: 180,
-            display: 'flex',
-            flexDirection: 'column',
-            zIndex: 9999,
-          }}>
-            {['Dwell Time', 'Visit Frequency', 'Peak Occupancy', 'Power Consumption'].map(option => (
-              <Link
-                key={option}
-                to="/heatmap"
-                onClick={() => {
-                  setHeatmapOption(option);
-                  setIsHeatmapHovered(false); // optional: auto-close on click
-                }}
-                style={{
-                  textDecoration: heatmapOption === option ? 'underline' : 'none',
-                  padding: '8px 16px',
-                  color: heatmapOption === option ? '#F28D3C' : (darkMode ? '#fff' : '#000'),
-                  backgroundColor: heatmapOption === option ? '#F28D3C22' : 'transparent',
-                  fontSize: '14px',
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer',
-                  display: 'block',
-                }}
-                onMouseEnter={e => e.currentTarget.style.color = '#F28D3C'}
-                onMouseLeave={e => {
-                  e.currentTarget.style.color = heatmapOption === option ? '#F28D3C' : (darkMode ? '#fff' : '#000');
-                }}
-              >
-                {option}
-              </Link>
-            ))}
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: darkMode ? '26px' : '4px',
+              transform: 'translateY(-50%)',
+              transition: 'left 0.4s ease-in-out',
+              width: '23px',
+              height: '23px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                width: '100%',
+                height: '100%',
+                borderRadius: '50%',
+                backgroundColor: 'white',
+                zIndex: 0,
+                backdropFilter: 'blur(1px)',
+              }}
+            />
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              {darkMode ? (
+                <HiMoon
+                  size={20}
+                  style={{
+                    color: '#32217E',
+                    transform: 'scaleX(-1) translateY(3px)',
+                    transition: 'opacity 0.3s ease-in-out',
+                    padding: 20,
+                  }}
+                />
+              ) : (
+                <IoSunny
+                  size={20}
+                  style={{
+                    color: '#F7B944',
+                    transition: 'opacity 0.3s ease-in-out',
+                    transform: 'scaleX(-1) translateY(3.5px)',
+                    padding: 10,
+                  }}
+                />
+              )}
+            </div>
           </div>
-        )}
-      </div>
-</div>
-{/* Dark Mode Toggle */}
-<div
-  onClick={() => setDarkMode(!darkMode)}
-  style={{
-    width: '52px',
-    height: '28px',
-    borderRadius: '999px',
-    position: 'relative',
-    cursor: 'pointer',
-    overflow: 'hidden',
-    background: darkMode
-      ? 'linear-gradient(135deg, #3b0764, #1e40af)'  // brighter moon gradient
-      : 'linear-gradient(135deg, #fde68a, #f59e0b)', // sunlight
-    transition: 'background 0.4s ease-in-out',
-    boxShadow: 'inset 0 0 6px rgba(0,0,0,0.2)',
-    marginLeft: '5px',
-  }}
->
-  {/* Sliding Icon Container */}
-  <div
-    style={{
-      position: 'absolute',
-      top: '50%',
-      left: darkMode ? '26px' : '4px',
-      transform: 'translateY(-50%)',
-      transition: 'left 0.4s ease-in-out',
-      width: '23px',
-      height: '23px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}
-  >
-    {/* Circular Background Behind Icon */}
-    <div
-      style={{
-        position: 'absolute',
-        width: '100%',
-        height: '100%',
-        borderRadius: '50%',
-        backgroundColor: darkMode ? 'white' : 'white',
-        zIndex: 0,
-        backdropFilter: 'blur(1px)'
-      }}
-    />
-    {/* Icon */}
-    <div style={{ position: 'relative', zIndex: 1 }}>
-      {darkMode ? (
-        <HiMoon
-          size={20}
-          style={{
-            color: '#32217E',
-            transform: 'scaleX(-1) translateY(3px)', 
-            transition: 'opacity 0.3s ease-in-out',
-            padding: 20,
-          }}
-        />
-      ) : (
-        <IoSunny
-          size={20}
-          style={{
-            color: '#F7B944',
-            transition: 'opacity 0.3s ease-in-out',
-            transform: 'scaleX(-1) translateY(3.5px)', 
-            padding: 10,
-          }}
-        />
-      )}
-    </div>
-  </div>
-</div>
         </div>
- 
-      <div style={{ 
-        display: 'flex', 
-        flex: 1, 
+      </div>
+
+      <div style={{
+        display: 'flex',
+        flex: 1,
         overflow: 'hidden',
         flexDirection: window.innerWidth <= 768 ? 'column' : 'row'
       }}>
+
         {/* Map Container */}
         <div style={{
-  flexBasis: isFullScreen ? '100%' : window.innerWidth <= 768 ? '50vh' : '75%',
-  padding: window.innerWidth <= 768 ? 8 : 16,
-  backgroundColor: theme.cardBackground,
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  position: 'relative',
-  minHeight: window.innerWidth <= 768 ? '50vh' : 'auto',
-  overflow: scale < 1 ? 'auto' : 'hidden'
-}} className="map-container">
+          flexBasis: isFullScreen ? '100%' : window.innerWidth <= 768 ? '60%' : '75%',
+          padding: window.innerWidth <= 768 ? 8 : 16,
+          backgroundColor: theme.cardBackground,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          position: 'relative',
+          minHeight: window.innerWidth <= 768 ? '300px' : 'auto'
+        }} className="map-container">
 
           <div
             id="warehouse-map-container"
@@ -746,150 +792,149 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
 
             {/* Active Indicators (Top Right of Grid) */}
             <div style={{
-  position: 'absolute',
-  top: 20,
-  right: 30,
-  zIndex: 20,
-  display: 'flex',
-  gap: '20px',
-  alignItems: 'center',
-  fontSize: 13,
-  fontWeight: 500,
-  color: darkMode ? '#ccc' : '#333',
-}} className="active-indicators">
+              position: 'absolute',
+              top: 20,
+              right: 30,
+              zIndex: 20,
+              display: 'flex',
+              gap: '20px',
+              alignItems: 'center',
+              fontSize: 13,
+              fontWeight: 500,
+              color: darkMode ? '#ccc' : '#333',
+            }} className="active-indicators">
 
-  {/* Green blinking dot + Active Assets */}
-  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-    <div style={{
-      width: 8,
-      height: 8,
-      borderRadius: '50%',
-      backgroundColor: '#00C853',
-      animation: 'blink 1s infinite',
-    }} />
-    <span>Active Assets: 2</span>
-  </div>
+              {/* Green blinking dot + Active Assets */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  backgroundColor: '#00C853',
+                  animation: 'blink 1s infinite',
+                }} />
+                <span>Active Assets: 2</span>
+              </div>
 
-  {/* Blue dot + Active Zones */}
-  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-    <div style={{
-      width: 8,
-      height: 8,
-      borderRadius: '50%',
-      backgroundColor: '#1E88E5',
-      animation: 'blink 1s infinite',
-    }} />
-    <span>Active Zones: 8</span>
-  </div>
-</div>
+              {/* Blue dot + Active Zones */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  backgroundColor: '#1E88E5',
+                  animation: 'blink 1s infinite',
+                }} />
+                <span>Active Zones: 8</span>
+              </div>
+            </div>
 
-<style>
-{`
-@keyframes blink {
-  0% { opacity: 1; }
-  50% { opacity: 0.3; }
-  100% { opacity: 1; }
-}
-`}
-</style>
+            <style>
+              {`
+                @keyframes blink {
+                  0% { opacity: 1; }
+                  50% { opacity: 0.3; }
+                  100% { opacity: 1; }
+                }
+              `}
+            </style>
 
-<div style={{
-  position: 'absolute',
-  bottom: 30,
-  right: 30,
-  zIndex: 20,
-  display: 'flex',
-  gap: '14px',
-  alignItems: 'center',
-}} className="zoom-controls">
+            <div style={{
+              position: 'absolute',
+              bottom: 30,
+              right: 30,
+              zIndex: 20,
+              display: 'flex',
+              gap: '14px',
+              alignItems: 'center',
+            }} className="zoom-controls">
 
-  {/* Zoom In */}
-  <FaSearchPlus
-    style={{
-      cursor: 'pointer',
-      color: darkMode ? '#CCCCCC' : '#333333',
-      opacity: 0.9,
-      transition: 'opacity 0.2s ease',
-    }}
-    onClick={handleZoomIn}
-    title="Zoom In"
-    size={18}
-    onMouseOver={e => e.currentTarget.style.opacity = 1}
-    onMouseOut={e => e.currentTarget.style.opacity = 0.9}
-  />
+              {/* Zoom In */}
+              <FaSearchPlus
+                style={{
+                  cursor: 'pointer',
+                  color: darkMode ? '#CCCCCC' : '#333333',
+                  opacity: 0.9,
+                  transition: 'opacity 0.2s ease',
+                }}
+                onClick={handleZoomIn}
+                title="Zoom In"
+                size={18}
+                onMouseOver={e => e.currentTarget.style.opacity = '1'}
+                onMouseOut={e => e.currentTarget.style.opacity = '0.9'}
+              />
 
-  {/* Zoom Out */}
-  <FaSearchMinus
-    style={{
-      cursor: 'pointer',
-      color: darkMode ? '#CCCCCC' : '#333333',
-      opacity: 0.9,
-      transition: 'opacity 0.2s ease',
-    }}
-    onClick={handleZoomOut}
-    title="Zoom Out"
-    size={18}
-    onMouseOver={e => e.currentTarget.style.opacity = 1}
-    onMouseOut={e => e.currentTarget.style.opacity = 0.9}
-  />
+              {/* Zoom Out */}
+              <FaSearchMinus
+                style={{
+                  cursor: 'pointer',
+                  color: darkMode ? '#CCCCCC' : '#333333',
+                  opacity: 0.9,
+                  transition: 'opacity 0.2s ease',
+                }}
+                onClick={handleZoomOut}
+                title="Zoom Out"
+                size={18}
+                onMouseOver={e => e.currentTarget.style.opacity = '1'}
+                onMouseOut={e => e.currentTarget.style.opacity = '0.9'}
+              />
 
-  {/* Fullscreen Toggle */}
-  {isFullScreen ? (
-    <FaCompress
-      style={{
-        cursor: 'pointer',
-        color: darkMode ? '#CCCCCC' : '#333333',
-        opacity: 0.9,
-        transition: 'opacity 0.2s ease',
-      }}
-      onClick={handleFullScreenToggle}
-      title="Exit Full Screen"
-      size={18}
-      onMouseOver={e => e.currentTarget.style.opacity = 1}
-      onMouseOut={e => e.currentTarget.style.opacity = 0.9}
-    />
-  ) : (
-    <FaExpand
-      style={{
-        cursor: 'pointer',
-        color: darkMode ? '#CCCCCC' : '#333333',
-        opacity: 0.9,
-        transition: 'opacity 0.2s ease',
-      }}
-      onClick={handleFullScreenToggle}
-      title="Full Screen"
-      size={18}
-      onMouseOver={e => e.currentTarget.style.opacity = 1}
-      onMouseOut={e => e.currentTarget.style.opacity = 0.9}
-    />
-  )}
+              {/* Fullscreen Toggle */}
+              {isFullScreen ? (
+                <FaCompress
+                  style={{
+                    cursor: 'pointer',
+                    color: darkMode ? '#CCCCCC' : '#333333',
+                    opacity: 0.9,
+                    transition: 'opacity 0.2s ease',
+                  }}
+                  onClick={handleFullScreenToggle}
+                  title="Exit Full Screen"
+                  size={18}
+                  onMouseOver={e => e.currentTarget.style.opacity = '1'}
+                  onMouseOut={e => e.currentTarget.style.opacity = '0.9'}
+                />
+              ) : (
+                <FaExpand
+                  style={{
+                    cursor: 'pointer',
+                    color: darkMode ? '#CCCCCC' : '#333333',
+                    opacity: 0.9,
+                    transition: 'opacity 0.2s ease',
+                  }}
+                  onClick={handleFullScreenToggle}
+                  title="Full Screen"
+                  size={18}
+                  onMouseOver={e => e.currentTarget.style.opacity = '1'}
+                  onMouseOut={e => e.currentTarget.style.opacity = '0.9'}
+                />
+              )}
 
-  {/* Reset Button */}
-  <button
-    onClick={handleReset}
-    style={{
-      fontSize: '13px',
-      fontWeight: 500,
-      padding: '4px 8px',
-      borderRadius: 4,
-      backgroundColor: 'transparent',
-      border: `1px solid ${darkMode ? '#666' : '#ccc'}`,
-      color: darkMode ? '#CCCCCC' : '#333333',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-    }}
-    onMouseOver={e => {
-      e.currentTarget.style.backgroundColor = darkMode ? '#333' : '#f0f0f0';
-    }}
-    onMouseOut={e => {
-      e.currentTarget.style.backgroundColor = 'transparent';
-    }}
-    title="Reset Map to Default View"
-  >
-    Reset
-  </button>
-</div>
-
+              {/* Reset Button */}
+              <button
+                onClick={handleReset}
+                style={{
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  padding: '4px 8px',
+                  borderRadius: 4,
+                  backgroundColor: 'transparent',
+                  border: `1px solid ${darkMode ? '#666' : '#ccc'}`,
+                  color: darkMode ? '#CCCCCC' : '#333333',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseOver={e => {
+                  e.currentTarget.style.backgroundColor = darkMode ? '#333' : '#f0f0f0';
+                }}
+                onMouseOut={e => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+                title="Reset Map to Default View"
+              >
+                Reset
+              </button>
+            </div>
 
             {/* Scaled Map Content */}
             <div style={{
@@ -927,208 +972,179 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
                 <text x="60" y="410" fill={darkMode ? "#ffffff" : "#006064"} fontSize="12" textAnchor="middle">Canteen</text>
 
                 {/* ASSET TRAILS */}
-                {assetType === 'All Assets'
-                  ? Object.entries(allAssetsPaths).map(([id, path]) =>
-                      path.slice(0, currentIndex + 1).map((p, i) =>
-                        i > 0 ? (
-                          <line
-                            key={`${id}-line-${i}`}
-                            x1={path[i - 1].x}
-                            y1={path[i - 1].y}
-                            x2={p.x}
-                            y2={p.y}
-                            stroke={getTrailColor(id)}
-                            strokeWidth={2}
-                          />
-                        ) : null
-                      )
-                    )
-                  : trailPath.slice(0, currentIndex + 1).map((p, i) =>
-                      i > 0 ? (
-                        <line
-                          key={`single-line-${i}`}
-                          x1={trailPath[i - 1].x}
-                          y1={trailPath[i - 1].y}
-                          x2={p.x}
-                          y2={p.y}
-                          stroke={getTrailColor()}
-                          strokeWidth={2}
-                        />
-                      ) : null
-                    )}
+{Array.from(checkedAssets).length > 0 ? (
+  Object.entries(checkedAssetsPaths).map(([id, path]) => {
+    const visiblePath = path.slice(0, currentIndex + 1); // Show trail up to currentIndex even during pause
+    return visiblePath.map((p, i) =>
+      i > 0 ? (
+        <line
+          key={`checked-${id}-line-${i}`}
+          x1={visiblePath[i - 1].x}
+          y1={visiblePath[i - 1].y}
+          x2={p.x}
+          y2={p.y}
+          stroke={getTrailColor(id)}
+          strokeWidth={2}
+          opacity={1}
+        />
+      ) : null
+    );
+  })
+) : assetType === 'All Assets' ? (
+  Object.entries(allAssetsPaths).map(([id, path]) => {
+    const visiblePath = path.slice(0, currentIndex + 1);
+    return visiblePath.map((p, i) =>
+      i > 0 ? (
+        <line
+          key={`${id}-line-${i}`}
+          x1={visiblePath[i - 1].x}
+          y1={visiblePath[i - 1].y}
+          x2={p.x}
+          y2={p.y}
+          stroke={getTrailColor(id)}
+          strokeWidth={2}
+        />
+      ) : null
+    );
+  })
+) : (
+  trailPath.slice(0, currentIndex + 1).map((p, i) =>
+    i > 0 ? (
+      <line
+        key={`single-line-${i}`}
+        x1={trailPath[i - 1].x}
+        y1={trailPath[i - 1].y}
+        x2={p.x}
+        y2={p.y}
+        stroke={getTrailColor()}
+        strokeWidth={2}
+      />
+    ) : null
+  )
+)}
 
-                {/* CHECKED ASSETS TRAILS */}
-                {Object.entries(checkedAssetsPaths).map(([id, path]) =>
-                  path.slice(0, currentIndex + 1).map((p, i) =>
-                    i > 0 ? (
-                      <line
-                        key={`checked-${id}-line-${i}`}
-                        x1={path[i - 1].x}
-                        y1={path[i - 1].y}
-                        x2={p.x}
-                        y2={p.y}
-                        stroke={getTrailColor(id)}
-                        strokeWidth={2}
-                      />
-                    ) : null
-                  )
-                )}
+{/* CURRENT POSITION CIRCLE */}
+{Array.from(checkedAssets).length > 0 ? (
+  Object.entries(checkedAssetsPaths).map(([id, path]) => {
+    const visiblePath = path.slice(0, currentIndex + 1);
+    const current = visiblePath[visiblePath.length - 1];
+    return (
+      <g key={`current-${id}`}>
+        <circle cx={current.x} cy={current.y} r={6} fill={getTrailColor(id)}>
+          <title>{id}</title>
+        </circle>
+        <circle
+          cx={current.x}
+          cy={current.y}
+          r={10}
+          stroke={getTrailColor(id)}
+          strokeWidth={2}
+          fill="none"
+          opacity="0.4"
+        >
+          <animate attributeName="r" from="6" to="15" dur="1s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.6;0" dur="1s" repeatCount="indefinite" />
+        </circle>
+        {current.popup && (
+          <text x={current.x + 15} y={current.y - 10} fontSize="12" fill={darkMode ? '#fff' : '#4C4C4C'} fontWeight="bold">
+            END
+          </text>
+        )}
+      </g>
+    );
+  })
+) : currentIndex < trailPath.length && (
+  <g>
+    <circle cx={trailPath[currentIndex].x} cy={trailPath[currentIndex].y} r={6} fill={getTrailColor()} />
+    <circle
+      cx={trailPath[currentIndex].x}
+      cy={trailPath[currentIndex].y}
+      r={10}
+      stroke={getTrailColor()}
+      strokeWidth={2}
+      fill="none"
+      opacity="0.4"
+    >
+      <animate attributeName="r" from="6" to="15" dur="1s" repeatCount="indefinite" />
+      <animate attributeName="opacity" values="0.6;0" dur="1s" repeatCount="indefinite" />
+    </circle>
+    {trailPath[currentIndex].popup && (
+      <text x={trailPath[currentIndex].x + 15} y={trailPath[currentIndex].y - 10} fontSize="12" fill={darkMode ? '#fff' : '#4C4C4C'} fontWeight="bold">
+        END
+      </text>
+    )}
+  </g>
+)}
 
-                {/* CURRENT POSITION CIRCLES WITH BLINKING ANIMATION - Only show for current index */}
-                {assetType === 'All Assets'
-                  ? Object.entries(allAssetsPaths).map(([id, path]) => {
-                      if (currentIndex < path.length) {
-                        const currentPoint = path[currentIndex];
-                        return (
-                          <g key={`${id}-current-circle`}>
-                            <circle cx={currentPoint.x} cy={currentPoint.y} r={6} fill={getTrailColor(id)}>
-                              <title>{id}</title>
-                            </circle>
-                            <circle
-                              cx={currentPoint.x}
-                              cy={currentPoint.y}
-                              r={10}
-                              stroke={getTrailColor(id)}
-                              strokeWidth="2"
-                              fill="none"
-                              opacity="0.4"
-                            >
-                              <animate attributeName="r" from="6" to="15" dur="1s" repeatCount="indefinite" />
-                              <animate attributeName="opacity" values="0.6;0" dur="1s" repeatCount="indefinite" />
-                              <title>{id}</title>
-                            </circle>
-                            {currentPoint.popup && (
-                              <text x={currentPoint.x + 15} y={currentPoint.y - 10} fontSize="12" fill={darkMode ? '#ffffff' : '#4C4C4C'} fontWeight="bold">
-                                END
-                              </text>
-                            )}
-                          </g>
-                        );
-                      }
-                      return null;
-                    })
-                  : currentIndex < trailPath.length && (
-                      <g key="single-current-circle">
-                        <circle cx={trailPath[currentIndex].x} cy={trailPath[currentIndex].y} r={6} fill={getTrailColor()}>
-                          <title>{selectedAssetId || assetType}</title>
-                        </circle>
-                        <circle
-                          cx={trailPath[currentIndex].x}
-                          cy={trailPath[currentIndex].y}
-                          r={10}
-                          stroke={getTrailColor()}
-                          strokeWidth="2"
-                          fill="none"
-                          opacity="0.4"
-                        >
-                          <animate attributeName="r" from="6" to="15" dur="1s" repeatCount="indefinite" />
-                          <animate attributeName="opacity" values="0.6;0" dur="1s" repeatCount="indefinite" />
-                          <title>{selectedAssetId || assetType}</title>
-                        </circle>
-                        {trailPath[currentIndex].popup && (
-                          <text x={trailPath[currentIndex].x + 15} y={trailPath[currentIndex].y - 10} fontSize="12" fill={darkMode ? '#ffffff' : '#4C4C4C'} fontWeight="bold">
-                            END
-                          </text>
-                        )}
-                      </g>
-                    )}
+{/* STATIC DOTS */}
+{Array.from(checkedAssets).length > 0 ? (
+  Object.entries(checkedAssetsPaths).map(([id, path]) => {
+    const visiblePath = path.slice(0, currentIndex + 1);
+    return visiblePath.map((p, i) => (
+      <circle
+        key={`static-${id}-${i}`}
+        cx={p.x}
+        cy={p.y}
+        r={4}
+        fill={getTrailColor(id)}
+        opacity={0.8}
+      >
+        <title>{id}</title>
+      </circle>
+    ));
+  })
+) : assetType === 'All Assets' ? (
+  Object.entries(allAssetsPaths).map(([id, path]) => {
+    const visiblePath = path.slice(0, currentIndex + 1);
+    return visiblePath.map((p, i) => (
+      <circle
+        key={`static-${id}-${i}`}
+        cx={p.x}
+        cy={p.y}
+        r={4}
+        fill={getTrailColor(id)}
+        opacity={0.8}
+      >
+        <title>{id}</title>
+      </circle>
+    ));
+  })
+) : (
+  trailPath.slice(0, currentIndex + 1).map((p, i) => (
+    <circle
+      key={`static-single-${i}`}
+      cx={p.x}
+      cy={p.y}
+      r={4}
+      fill={getTrailColor()}
+      opacity={0.8}
+    >
+      <title>{selectedAssetId || assetType}</title>
+    </circle>
+  ))
+)}
 
-                {/* STATIC TRAIL CIRCLES - All previous positions without animation */}
-                {assetType === 'All Assets'
-                  ? Object.entries(allAssetsPaths).map(([id, path]) =>
-                      path.slice(0, currentIndex).map((p, i) => (
-                        <circle
-                          key={`${id}-static-circle-${i}`}
-                          cx={p.x}
-                          cy={p.y}
-                          r={4}
-                          fill={getTrailColor(id)}
-                          opacity={0.7}
-                        >
-                          <title>{id}</title>
-                        </circle>
-                      ))
-                    )
-                  : trailPath.slice(0, currentIndex).map((p, i) => (
-                      <circle
-                        key={`single-static-circle-${i}`}
-                        cx={p.x}
-                        cy={p.y}
-                        r={4}
-                        fill={getTrailColor()}
-                        opacity={0.7}
-                      >
-                        <title>{selectedAssetId || assetType}</title>
-                      </circle>
-                    ))}
 
-                {/* CHECKED ASSETS CURRENT CIRCLES WITH BLINKING ANIMATION */}
-                {Object.entries(checkedAssetsPaths).map(([id, path]) => {
-                  if (currentIndex < path.length) {
-                    const currentPoint = path[currentIndex];
-                    return (
-                      <g key={`checked-${id}-current-circle`}>
-                        <circle cx={currentPoint.x} cy={currentPoint.y} r={6} fill={getTrailColor(id)}>
-                          <title>{id}</title>
-                        </circle>
-                        <circle
-                          cx={currentPoint.x}
-                          cy={currentPoint.y}
-                          r={10}
-                          stroke={getTrailColor(id)}
-                          strokeWidth="2"
-                          fill="none"
-                          opacity="0.4"
-                        >
-                          <animate attributeName="r" from="6" to="15" dur="1s" repeatCount="indefinite" />
-                          <animate attributeName="opacity" values="0.6;0" dur="1s" repeatCount="indefinite" />
-                          <title>{id}</title>
-                        </circle>
-                        {currentPoint.popup && (
-                          <text x={currentPoint.x + 15} y={currentPoint.y - 10} fontSize="12" fill={darkMode ? '#ffffff' : '#4C4C4C'} fontWeight="bold">
-                            END
-                          </text>
-                        )}
-                      </g>
-                    );
-                  }
-                  return null;
-                })}
-
-                {/* CHECKED ASSETS STATIC CIRCLES */}
-                {Object.entries(checkedAssetsPaths).map(([id, path]) =>
-                  path.slice(0, currentIndex).map((p, i) => (
-                    <circle
-                      key={`checked-${id}-static-circle-${i}`}
-                      cx={p.x}
-                      cy={p.y}
-                      r={4}
-                      fill={getTrailColor(id)}
-                      opacity={0.7}
-                    >
-                      <title>{id}</title>
-                    </circle>
-                  ))
-                )}
+               
               </svg>
             </div>
 
             {/* LEGEND */}
             <div style={{
-  position: 'absolute',
-  bottom: 20,
-  left: 20,
-  fontSize: 12,
-  color: theme.textPrimary,
-  display: 'flex',
-  flexWrap: 'wrap',
-  gap: '20px',
-  alignItems: 'center',
-  backgroundColor: darkMode ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.9)',
-  padding: '10px 15px',
-  borderRadius: 8,
-  backdropFilter: 'blur(5px)',
-}} className="legend">
+              position: 'absolute',
+              bottom: 20,
+              left: 20,
+              fontSize: 12,
+              color: theme.textPrimary,
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '20px',
+              alignItems: 'center',
+              backgroundColor: darkMode ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.9)',
+              padding: '10px 15px',
+              borderRadius: 8,
+              backdropFilter: 'blur(5px)',
+            }} className="legend">
 
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <span style={{ color: '#BF00FF', fontSize: 10, marginRight: 6 }}>⬤</span> Forklifts
@@ -1149,18 +1165,16 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
         {/* Mid Panel */}
         {showMidPanel && !isFullScreen && (
           <div 
-          className={darkMode ? 'mid-panel dark-scroll' : 'mid-panel light-scroll'}
-          style={{
-             flexBasis: window.innerWidth <= 768 ? '50vh' : '18%',
-             backgroundColor: theme.cardBackground,
-             
-             padding: 16,
-             
-             overflowY: 'auto',
-             position: 'relative',
-             maxHeight: window.innerWidth <= 768 ? '50vh' : 'auto'
-          }}>
-          <button
+            className={darkMode ? 'mid-panel dark-scroll' : 'mid-panel light-scroll'}
+            style={{
+              flexBasis: window.innerWidth <= 768 ? '100%' : '18%',
+              backgroundColor: theme.cardBackground,
+              padding: 16,
+              overflowY: 'auto',
+              position: 'relative',
+              maxHeight: window.innerWidth <= 768 ? '300px' : 'auto'
+            }}>
+            <button
               onClick={() => setShowMidPanel(false)}
               style={{
                 position: 'absolute',
@@ -1173,7 +1187,7 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
                 color: theme.textSecondary,
               }}
               onMouseEnter={e => (e.currentTarget.style.color = darkMode ? '#4a9eff' : '#007bff')}
-              onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = theme.textSecondary; }}
+              onMouseLeave={e => (e.currentTarget.style.color = theme.textSecondary)}
             >
               <FaTimes />
             </button>
@@ -1356,16 +1370,16 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
         )}
 
         {/* Right Panel - Controls */}
-        {!isFullScreen && (
+{!isFullScreen && (
   <div 
-  className={darkMode ? 'mid-panel dark-scroll' : 'mid-panel light-scroll'}
-  style={{
-    flexBasis: showMidPanel ? (window.innerWidth <= 768 ? '100%' : '20%') : (window.innerWidth <= 768 ? '40%' : '25%'),
-    padding: window.innerWidth <= 768 ? 8 : 16,
-    backgroundColor: darkMode ? '#1e1e1e' : '#ffffff',
-    boxShadow: 'theme.shadow',
-    overflowY: 'auto',
-  }}>
+    className={darkMode ? 'mid-panel dark-scroll' : 'mid-panel light-scroll'}
+    style={{
+      flexBasis: showMidPanel ? (window.innerWidth <= 768 ? '100%' : '20%') : (window.innerWidth <= 768 ? '40%' : '25%'),
+      padding: window.innerWidth <= 768 ? 8 : 16,
+      backgroundColor: darkMode ? '#1e1e1e' : '#ffffff',
+      boxShadow: theme.shadow,
+      overflowY: 'auto',
+    }}>
 
     {/* Asset Type Box */}
     <div style={{
@@ -1390,15 +1404,14 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
           backgroundColor: darkMode ? '#3a3a3a' : '#ffffff',
           color: theme.textPrimary,
         }}>
-        <option>Forklifts</option>
-        <option>Cranes</option>
-        <option>Carts</option>
-        <option>Operators/Workers</option>
-        <option>All Assets</option>
+        {Object.keys(assetMap).map(type => (
+          <option key={type} value={type}>{type}</option>
+        ))}
       </select>
 
-      <ul style={{ listStyle: 'none', padding: 0 }}>
+      <ul style={{ listStyle: 'none', padding: 0, marginTop: 10 }}>
         {assetMap[assetType].map((id) => {
+          const isChecked = checkedAssets.has(id);
           let icon = null;
           if (id.toLowerCase().includes('forklift')) icon = <FaTruck style={{ marginRight: 8 }} />;
           else if (id.toLowerCase().includes('crane')) icon = <FaCog style={{ marginRight: 8 }} />;
@@ -1421,14 +1434,37 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
               onClick={() => assetType !== 'All Assets' && handleAssetClick(id)}
             >
               <div style={{ display: 'flex', alignItems: 'center' }}>
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    if (e.target.checked) {
+                      setCheckedAssets((prev) => {
+                        const updated = new Set(prev).add(id);
+                        generateRandomPath(id);
+                        return updated;
+                      });
+                    } else {
+                      setCheckedAssets((prev) => {
+                        const updated = new Set(prev);
+                        updated.delete(id);
+                        return updated;
+                      });
+                    }
+                  }}
+                  style={{ marginRight: 8 }}
+                />
                 {icon}
                 <span>{id}</span>
               </div>
+
               <span
                 style={{
                   ...detailsBtnStyle,
                   color: darkMode ? '#4a9eff' : '#007bff',
-                  backgroundColor: 'transparent'
+                  backgroundColor: 'transparent',
+                  userSelect: 'none'
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1459,7 +1495,7 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
         display: 'flex',
         alignItems: 'center',
         marginBottom: 8,
-        marginLeft:-6,
+        marginLeft: -6,
         fontSize: 14,
         color: theme.textPrimary
       }}>
@@ -1472,7 +1508,7 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
           fontSize: 13,
           fontWeight: 500,
           marginBottom: 4,
-          marginLeft:-5,
+          marginLeft: -5,
           display: 'block',
           color: theme.textSecondary
         }}>
@@ -1486,7 +1522,7 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
             width: '100%',
             padding: '9px 5px',
             borderRadius: 10,
-            marginLeft:-5,
+            marginLeft: -5,
             border: `1px solid ${theme.border}`,
             backgroundColor: darkMode ? '#3a3a3a' : '#ffffff',
             color: theme.textPrimary,
@@ -1501,7 +1537,7 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
           fontWeight: 500,
           marginBottom: 4,
           display: 'block',
-          marginLeft:-5,
+          marginLeft: -5,
           color: theme.textSecondary
         }}>
           End Date & Time
@@ -1514,7 +1550,7 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
             width: '100%',
             padding: '9px 5px',
             borderRadius: 10,
-            marginLeft:-5,
+            marginLeft: -5,
             marginRight: 10,
             border: `1px solid ${theme.border}`,
             backgroundColor: darkMode ? '#3a3a3a' : '#ffffff',
@@ -1525,46 +1561,86 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
       </div>
     </div>
 
-    {/* Playback Controls */}
-    <div style={{
-      border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
-      borderRadius: 20,
-      padding: 12,
-      backgroundColor: darkMode ? '#2a2a2a' : '#ffffff',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-    }}>
-      <label style={{ fontWeight: 600, display: 'block', marginBottom: 8, color: theme.textPrimary }}>Playback Controls</label>
+   {/* Playback Controls */}
+<div style={{
+  border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
+  borderRadius: 20,
+  padding: 12,
+  backgroundColor: darkMode ? '#2a2a2a' : '#ffffff',
+  boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+}}>
+  <label style={{
+    fontWeight: 600,
+    display: 'block',
+    marginBottom: 8,
+    color: theme.textPrimary
+  }}>
+    Playback Controls
+  </label>
 
-      <div style={{ display: 'flex', gap: 10, marginBottom: 6 }}>
-        {[
-          { label: 'Play', icon: <FaPlay />, color: darkMode ? '#4a7c59' : '#28a745', onClick: () => setIsPlaying(true) },
-          { label: 'Pause', icon: <FaPause />, color: darkMode ? '#cc8400' : '#ffc107', onClick: () => setIsPlaying(false) },
-          { label: 'Reset', icon: <FaRedo />, color: darkMode ? '#b8312f' : '#dc3545', onClick: resetTrail }
-        ].map(({ label, icon, color, onClick }) => (
-          <div style={{ textAlign: 'center', flex: 1 }} key={label}>
-            <div style={{ fontSize: 11, marginBottom: 4, color: theme.textSecondary }}>{label}</div>
-            <button onClick={onClick} style={{
-              width: '100%',
-              padding: 6,
-              backgroundColor: color,
-              color: 'white',
-              border: 'none',
-              borderRadius: 10,
-              fontSize: 16,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              {icon}
-            </button>
-          </div>
-        ))}
-      </div>
+  <div style={{ display: 'flex', gap: 10 }}>
+    {/* Play Button */}
+    <div style={{ textAlign: 'center', flex: 1 }}>
+      <div style={{ fontSize: 11, marginBottom: 4, color: theme.textSecondary }}>Play</div>
+      <button
+        onClick={handleStartPlayback}
+        disabled={checkedAssets.size === 0}
+        style={{
+          width: '100%',
+          backgroundColor: checkedAssets.size === 0 ? '#999' : (darkMode ? '#4CAF50' : '#28a745'),
+          color: 'white',
+          padding: 6,
+          border: 'none',
+          borderRadius: 10,
+          fontSize: 16,
+          fontWeight: 600,
+          cursor: checkedAssets.size === 0 ? 'not-allowed' : 'pointer'
+        }}>
+        <FaPlay />
+      </button>
+    </div>
+
+    {/* Pause Button */}
+    <div style={{ textAlign: 'center', flex: 1 }}>
+      <div style={{ fontSize: 11, marginBottom: 4, color: theme.textSecondary }}>Pause</div>
+      <button
+        onClick={handleStopPlayback}
+        style={{
+          width: '100%',
+          backgroundColor: darkMode ? '#cc8400' : '#ffc107',
+          color: 'white',
+          padding: 6,
+          border: 'none',
+          borderRadius: 10,
+          fontSize: 16
+        }}>
+        <FaPause />
+      </button>
+    </div>
+
+    {/* Reset Button */}
+    <div style={{ textAlign: 'center', flex: 1 }}>
+      <div style={{ fontSize: 11, marginBottom: 4, color: theme.textSecondary }}>Reset</div>
+      <button
+        onClick={resetTrail}
+        style={{
+          width: '100%',
+          backgroundColor: darkMode ? '#b8312f' : '#dc3545',
+          color: 'white',
+          padding: 6,
+          border: 'none',
+          borderRadius: 10,
+          fontSize: 16
+        }}>
+        <FaRedo />
+      </button>
+    </div>
+  </div>
 
       {/* Speed Selector */}
       <div style={{ margin: '8px 0' }}>
         <label style={{ fontWeight: 600, display: 'flex', alignItems: 'center', marginBottom: 4, color: theme.textPrimary }}>
-          <RiSpeedUpFill style={{ marginRight: 5, marginLeft: 4 }} /> Speed
+          <RiSpeedUpFill style={{ marginRight: 5 }} /> Speed
         </label>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
           {[0.5, 1, 1.5, 2].map((s) => (
@@ -1589,13 +1665,13 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
         </div>
       </div>
 
-      <div style={{ fontWeight: 600, marginTop: 8, color: theme.textPrimary }}>Trail Time: {trailTime}s</div>
+      <div style={{ fontWeight: 600, marginTop: 8, color: theme.textPrimary }}>
+        Trail Time: {trailTime}s
+      </div>
       <input
         type="range"
         min={0}
-        max={assetType === 'All Assets'
-          ? Math.min(...Object.values(allAssetsPaths).map(p => p.length)) - 1
-          : trailPath.length - 1}
+        max={Math.max(...[...checkedAssets].map(id => (checkedAssetsPaths[id]?.length || 1))) - 1}
         value={currentIndex}
         onChange={(e) => {
           const value = Number(e.target.value);
@@ -1612,10 +1688,10 @@ const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
   </div>
 )}
 
-       
-  
-      </div>
-    </div>
+
+</div>
+</div>
+
   );
 };
 

@@ -12,6 +12,7 @@
   "dependencies": {
     "@react-three/drei": "^10.3.0",
     "@react-three/fiber": "^9.1.2",
+    "bootstrap": "^5.3.7",
     "framer-motion": "^12.20.2",
     "heatmap.js": "^2.0.5",
     "leaflet": "^1.9.4",
