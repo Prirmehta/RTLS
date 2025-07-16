@@ -1,54 +1,15 @@
-# React + TypeScript + Vite
+# RTLS Dashboard  
+A React-based dashboard visualises the past movement of assets in warehouse environments. It has extended traditional RTLS capabilities with a post-event spatiotemporal analytics layer, which enables heatmaps, trajectory intelligence and behaviour-based zone optimisation.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# Tools & Technologies Used 
+This project is focused solely on the front-end development of a historical asset trail dashboard and is built with React + TypeScript using Vite for fast builds. The asset trails and heatmaps were displayed with interactive React icons and Bootstrap for a responsive layout. 
 
-Currently, two official plugins are available:
+The dashboard includes two main views: 
+1. Action Trail View: It shows past asset movement 
+2. Heatmap View: It displays zone activity based on selected metrics 
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+# Colour Combinations Used
+The dashboard maintains a clean, professional look with a subtle white and grey light mode for a sharp, corporate feel. Assets are distinctly color-coded for clarity, and controls like Play, Pause, and Reset follow standard color conventions. Inspired by Phantom, the dark mode uses cool tones and vibrant accents, blending a modern, creative aesthetic with practical usability.
 
-## Expanding the ESLint configuration
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
