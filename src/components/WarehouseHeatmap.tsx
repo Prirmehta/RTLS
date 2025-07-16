@@ -28,6 +28,7 @@ const assetMap = {
   'All Assets': ['Forklift 1', 'Forklift 2', 'Crane 1', 'Cart 1', 'Worker 1'],
 };
 
+
 const zoneCoordinates = {
   "Asset Area": { x: 20, y: 20, width: 150, height: 150 },
   "Storage Area 1": { x: 200, y: 20, width: 200, height: 200 },
@@ -75,7 +76,6 @@ const WarehouseHeatmap = () => {
   const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
   const heatmapRef = useRef(null);
   const [heatmapOption, setHeatmapOption] = useState('');
-  
 
   // Check for mobile screen size
   useEffect(() => {
@@ -433,7 +433,7 @@ const WarehouseHeatmap = () => {
       const size = isMax ? 20 : 17;
   
       const textVal =
-        heatmapParameter === 'time' ? `${value}s` :
+        heatmapParameter === 'time' ? `${value}` :
         heatmapParameter === 'count' ? `${value}` :
         heatmapParameter === 'power' ? `${value}` :
         `${value}`;
@@ -921,264 +921,78 @@ const WarehouseHeatmap = () => {
 </div>
 
 
-<div style={{
-              transform: `scale(${scale})`,
-              transformOrigin: 'top left',
-              transition: 'transform 0.3s ease-in-out',
-              width: '100%',
-              height: '100%',
-              position: 'relative'
-            }}>
+              <div style={{
+                transform: `scale(${scale})`,
+                transformOrigin: 'top left',
+                transition: 'transform 0.3s ease-in-out',
+                width: '100%',
+                height: '100%',
+                position: 'relative'
+              }}>
 
-
-<svg width="100%" height="100%" preserveAspectRatio="xMidYMid meet" viewBox="0 0 800 500">
-                <style>
-                  {`
-                    .glow {
-                      stroke: ${darkMode ? '#fff' : '#000'};
-                      stroke-width: 1.5;
-                      filter: url(#glowFilter);
-                    }
-
-                    .animate-border {
-                      stroke: ${darkMode ? '#fff' : '#000'};
-                      stroke-width: 2;
-                      stroke-dasharray: 70;
-                      stroke-dashoffset: 70;
-                      animation: drawBorder 1.2s ease-out forwards;
-                    }
-
-                    @keyframes drawBorder {
-                      to {
-                        stroke-dashoffset: 0;
+                <svg width="100%" height="100%" preserveAspectRatio="xMidYMid meet" viewBox="0 0 800 500">
+                  <style>
+                    {`
+                      .glow {
+                        stroke: ${darkMode ? '#fff' : '#000'};
+                        stroke-width: 1.5;
+                        filter: url(#glowFilter);
                       }
-                    }
-                  `}
-                </style>
 
-                <defs>
-                  <filter id="glowFilter" x="-50%" y="-50%" width="200%" height="200%">
-                    <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-                    <feMerge>
-                      <feMergeNode in="coloredBlur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                </defs>
+                      .animate-border {
+                        stroke: ${darkMode ? '#fff' : '#000'};
+                        stroke-width: 2;
+                        stroke-dasharray: 70;
+                        stroke-dashoffset: 70;
+                        animation: drawBorder 1.2s ease-out forwards;
+                      }
 
-                {/* room zones */}
-                <rect 
-                  x="20" y="20" width="150" height="150" 
-                  fill={darkMode ? "#1a2833" : "#e6f2ff"} 
-                  stroke={darkMode ? "#4a90e2" : "#005cbf"} 
-                  strokeDasharray="6" 
-                  strokeWidth="1.5"
-                  onMouseEnter={(e) => {
-                    setTooltip({
-                      visible: true,
-                      x: e.clientX,
-                      y: e.clientY,
-                      text: "Asset Area"
-                    });
-                  }}
-                  onMouseLeave={() => setTooltip({ visible: false, x: 0, y: 0, text: '' })}
-                  onMouseMove={(e) => {
-                    setTooltip(prev => ({
-                      ...prev,
-                      x: e.clientX,
-                      y: e.clientY
-                    }));
-                  }}
-                  style={{ cursor: 'pointer' }}
-                />
-                <text x="90" y="95" fill={darkMode ? "#64b5f6" : "#003366"} fontSize="12" textAnchor="middle">Asset Area</text>
+                      @keyframes drawBorder {
+                        to {
+                          stroke-dashoffset: 0;
+                        }
+                      }
+                    `}
+                  </style>
 
-                <rect 
-                  x="200" y="20" width="200" height="200" 
-                  fill={darkMode ? "#1a2b1a" : "#e8f5e9"} 
-                  stroke={darkMode ? "#4caf50" : "#2e7d32"} 
-                  strokeDasharray="6" 
-                  strokeWidth="1.5"
-                  onMouseEnter={(e) => {
-                    setTooltip({
-                      visible: true,
-                      x: e.clientX,
-                      y: e.clientY,
-                      text: "Storage Area 1"
-                    });
-                  }}
-                  onMouseLeave={() => setTooltip({ visible: false, x: 0, y: 0, text: '' })}
-                  onMouseMove={(e) => {
-                    setTooltip(prev => ({
-                      ...prev,
-                      x: e.clientX,
-                      y: e.clientY
-                    }));
-                  }}
-                  style={{ cursor: 'pointer' }}
-                />
-                <text x="295" y="120" fill={darkMode ? "#81c784" : "#1b5e20"} fontSize="12" textAnchor="middle">Storage Area 1</text>
+                  <defs>
+                    <filter id="glowFilter" x="-50%" y="-50%" width="200%" height="200%">
+                      <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                      <feMerge>
+                        <feMergeNode in="coloredBlur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
 
-                <rect 
-                  x="500" y="60" width="200" height="200" 
-                  fill={darkMode ? "#1a2b1a" : "#e8f5e9"} 
-                  stroke={darkMode ? "#4caf50" : "#2e7d32"} 
-                  strokeDasharray="6" 
-                  strokeWidth="1.5"
-                  onMouseEnter={(e) => {
-                    setTooltip({
-                      visible: true,
-                      x: e.clientX,
-                      y: e.clientY,
-                      text: "Storage Area 2"
-                    });
-                  }}
-                  onMouseLeave={() => setTooltip({ visible: false, x: 0, y: 0, text: '' })}
-                  onMouseMove={(e) => {
-                    setTooltip(prev => ({
-                      ...prev,
-                      x: e.clientX,
-                      y: e.clientY
-                    }));
-                  }}
-                  style={{ cursor: 'pointer' }}
-                />
-                <text x="595" y="165" fill={darkMode ? "#81c784" : "#1b5e20"} fontSize="12" textAnchor="middle">Storage Area 2</text>
+  {/* room zones */}
+  <rect x="20" y="20" width="150" height="150" fill={darkMode ? "#1a2833" : "#e6f2ff"} stroke={darkMode ? "#4a90e2" : "#005cbf"} strokeDasharray="6" strokeWidth="1.5" />
+                  <text x="90" y="95" fill={darkMode ? "#64b5f6" : "#003366"} fontSize="12" textAnchor="middle">Asset Area</text>
 
-                <rect 
-                  x="650" y="280" width="120" height="120" 
-                  fill={darkMode ? "#2b2416" : "#fff8e1"} 
-                  stroke={darkMode ? "#ffc107" : "#f9a825"} 
-                  strokeDasharray="6" 
-                  strokeWidth="1.5"
-                  onMouseEnter={(e) => {
-                    setTooltip({
-                      visible: true,
-                      x: e.clientX,
-                      y: e.clientY,
-                      text: "Service Area"
-                    });
-                  }}
-                  onMouseLeave={() => setTooltip({ visible: false, x: 0, y: 0, text: '' })}
-                  onMouseMove={(e) => {
-                    setTooltip(prev => ({
-                      ...prev,
-                      x: e.clientX,
-                      y: e.clientY
-                    }));
-                  }}
-                  style={{ cursor: 'pointer' }}
-                />
-                <text x="710" y="345" fill={darkMode ? "#ffb74d" : "#ef6c00"} fontSize="12" textAnchor="middle">Service Area</text>
+                  <rect x="200" y="20" width="200" height="200" fill={darkMode ? "#1a2b1a" : "#e8f5e9"} stroke={darkMode ? "#4caf50" : "#2e7d32"} strokeDasharray="6" strokeWidth="1.5" />
+                  <text x="295" y="120" fill={darkMode ? "#81c784" : "#1b5e20"} fontSize="12" textAnchor="middle">Storage Area 1</text>
 
-                <rect 
-                  x="140" y="330" width="220" height="120" 
-                  fill={darkMode ? "#2b1a2b" : "#f3e5f5"} 
-                  stroke={darkMode ? "#ba68c8" : "#8e24aa"} 
-                  strokeDasharray="6" 
-                  strokeWidth="1.5"
-                  onMouseEnter={(e) => {
-                    setTooltip({
-                      visible: true,
-                      x: e.clientX,
-                      y: e.clientY,
-                      text: "Receiving Dock"
-                    });
-                  }}
-                  onMouseLeave={() => setTooltip({ visible: false, x: 0, y: 0, text: '' })}
-                  onMouseMove={(e) => {
-                    setTooltip(prev => ({
-                      ...prev,
-                      x: e.clientX,
-                      y: e.clientY
-                    }));
-                  }}
-                  style={{ cursor: 'pointer' }}
-                />
-                <text x="240" y="400" fill={darkMode ? "#ce93d8" : "#6a1b9a"} fontSize="12" textAnchor="middle">Receiving Dock</text>
+                  <rect x="500" y="60" width="200" height="200" fill={darkMode ? "#1a2b1a" : "#e8f5e9"} stroke={darkMode ? "#4caf50" : "#2e7d32"} strokeDasharray="6" strokeWidth="1.5" />
+                  <text x="595" y="165" fill={darkMode ? "#81c784" : "#1b5e20"} fontSize="12" textAnchor="middle">Storage Area 2</text>
 
-                <rect 
-                  x="380" y="330" width="220" height="120" 
-                  fill={darkMode ? "#2b1a2b" : "#f3e5f5"} 
-                  stroke={darkMode ? "#ba68c8" : "#8e24aa"} 
-                  strokeDasharray="6" 
-                  strokeWidth="1.5"
-                  onMouseEnter={(e) => {
-                    setTooltip({
-                      visible: true,
-                      x: e.clientX,
-                      y: e.clientY,
-                      text: "Shipping Dock"
-                    });
-                  }}
-                  onMouseLeave={() => setTooltip({ visible: false, x: 0, y: 0, text: '' })}
-                  onMouseMove={(e) => {
-                    setTooltip(prev => ({
-                      ...prev,
-                      x: e.clientX,
-                      y: e.clientY
-                    }));
-                  }}
-                  style={{ cursor: 'pointer' }}
-                />
-                <text x="480" y="400" fill={darkMode ? "#ce93d8" : "#6a1b9a"} fontSize="12" textAnchor="middle">Shipping Dock</text>
+                  <rect x="650" y="280" width="120" height="120" fill={darkMode ? "#2b2416" : "#fff8e1"} stroke={darkMode ? "#ffc107" : "#f9a825"} strokeDasharray="6" strokeWidth="1.5" />
+                  <text x="710" y="345" fill={darkMode ? "#ffb74d" : "#ef6c00"} fontSize="12" textAnchor="middle">Service Area</text>
 
-                <rect 
-                  x="20" y="200" width="90" height="100" 
-                  fill={darkMode ? "#2b1a21" : "#fce4ec"} 
-                  stroke={darkMode ? "#e91e63" : "#ad1457"} 
-                  strokeDasharray="6" 
-                  strokeWidth="1.5"
-                  onMouseEnter={(e) => {
-                    setTooltip({
-                      visible: true,
-                      x: e.clientX,
-                      y: e.clientY,
-                      text: "Office"
-                    });
-                  }}
-                  onMouseLeave={() => setTooltip({ visible: false, x: 0, y: 0, text: '' })}
-                  onMouseMove={(e) => {
-                    setTooltip(prev => ({
-                      ...prev,
-                      x: e.clientX,
-                      y: e.clientY
-                    }));
-                  }}
-                  style={{ cursor: 'pointer' }}
-                />
-                <text x="60" y="260" fill={darkMode ? "#f48fb1" : "#880e4f"} fontSize="12" textAnchor="middle">Office</text>
+                  <rect x="140" y="330" width="220" height="120" fill={darkMode ? "#2b1a2b" : "#f3e5f5"} stroke={darkMode ? "#ba68c8" : "#8e24aa"} strokeDasharray="6" strokeWidth="1.5" />
+                  <text x="240" y="400" fill={darkMode ? "#ce93d8" : "#6a1b9a"} fontSize="12" textAnchor="middle">Receiving Dock</text>
 
-                <rect 
-                  x="20" y="330" width="90" height="140" 
-                  fill={darkMode ? "#1a2b2b" : "#e0f7fa"} 
-                  stroke={darkMode ? "#26c6da" : "#00838f"} 
-                  strokeDasharray="6" 
-                  strokeWidth="1.5"
-                  onMouseEnter={(e) => {
-                    setTooltip({
-                      visible: true,
-                      x: e.clientX,
-                      y: e.clientY,
-                      text: "Canteen"
-                    });
-                  }}
-                  onMouseLeave={() => setTooltip({ visible: false, x: 0, y: 0, text: '' })}
-                  onMouseMove={(e) => {
-                    setTooltip(prev => ({
-                      ...prev,
-                      x: e.clientX,
-                      y: e.clientY
-                    }));
-                  }}
-                  style={{ cursor: 'pointer' }}
-                />
-                <text x="60" y="410" fill={darkMode ? "#4dd0e1" : "#006064"} fontSize="12" textAnchor="middle">Canteen</text>
+                  <rect x="380" y="330" width="220" height="120" fill={darkMode ? "#2b1a2b" : "#f3e5f5"} stroke={darkMode ? "#ba68c8" : "#8e24aa"} strokeDasharray="6" strokeWidth="1.5" />
+                  <text x="480" y="400" fill={darkMode ? "#ce93d8" : "#6a1b9a"} fontSize="12" textAnchor="middle">Shipping Dock</text>
 
-                <g>{generateHeatmapCircles()}</g>
-              </svg>
-            </div>
-    
+                  <rect x="20" y="200" width="90" height="100" fill={darkMode ? "#2b1a21" : "#fce4ec"} stroke={darkMode ? "#e91e63" : "#ad1457"} strokeDasharray="6" strokeWidth="1.5" />
+                  <text x="60" y="260" fill={darkMode ? "#f48fb1" : "#880e4f"} fontSize="12" textAnchor="middle">Office</text>
+
+                  <rect x="20" y="330" width="90" height="140" fill={darkMode ? "#1a2b2b" : "#e0f7fa"} stroke={darkMode ? "#26c6da" : "#00838f"} strokeDasharray="6" strokeWidth="1.5" />
+                  <text x="60" y="410" fill={darkMode ? "#4dd0e1" : "#006064"} fontSize="12" textAnchor="middle">Canteen</text>
+
+                  <g>{generateHeatmapCircles()}</g>
+                </svg>
+              </div>
 
               {/* Legends */}
               {heatmapParameter === 'time' && (
@@ -1186,6 +1000,7 @@ const WarehouseHeatmap = () => {
     {getLegendColors(darkMode).map((item, index) => (
       <div 
         key={index}
+        title={`Click to highlight areas with ${item.label.toLowerCase()} time spent`}
         style={{
           ...legendItemStyle,
           opacity: selectedColorFilter === null || selectedColorFilter === item.color ? 1 : 0.5,
@@ -1198,7 +1013,7 @@ const WarehouseHeatmap = () => {
           borderRadius: '50%',
           backgroundColor: item.color,
         }}></div>
-        <span>{item.label} Time</span>
+        <span>{item.label} Time </span>
       </div>
     ))}
   </div>
@@ -1209,6 +1024,7 @@ const WarehouseHeatmap = () => {
     {getLegendColors(darkMode).map((item, index) => (
       <div 
         key={index}
+        title={`Click to highlight areas with ${item.label.toLowerCase()} assets`}
         style={{
           ...legendItemStyle,
           opacity: selectedColorFilter === null || selectedColorFilter === item.color ? 1 : 0.5,
@@ -1222,7 +1038,7 @@ const WarehouseHeatmap = () => {
           clipPath: 'polygon(50% 0%, 95% 38%, 79% 95%, 21% 95%, 5% 38%)',
           border: (item.color === '#2c3e50' || item.color === '#B2BABB') ? `2px solid ${darkMode ? '#fff' : '#222'}` : 'none',
         }}></div>
-        <span>{item.label} People</span>
+        <span>{item.label} Assets </span>
       </div>
     ))}
   </div>
@@ -1233,6 +1049,7 @@ const WarehouseHeatmap = () => {
     {getLegendColors(darkMode).map((item, index) => (
       <div 
         key={index}
+        title={`Click to highlight areas with ${item.label.toLowerCase()} Kwh power usage`}
         style={{
           ...legendItemStyle,
           opacity: selectedColorFilter === null || selectedColorFilter === item.color ? 1 : 0.5,
@@ -1246,7 +1063,7 @@ const WarehouseHeatmap = () => {
           clipPath: 'polygon(50% 0%, 95% 38%, 79% 95%, 21% 95%, 5% 38%)',
           border: (item.color === '#2c3e50' || item.color === '#B2BABB') ? `2px solid ${darkMode ? '#fff' : '#222'}` : 'none'
         }}></div>
-        <span>{item.label} Power</span>
+        <span>{item.label} Kwh</span>
       </div>
     ))}
   </div>
@@ -1257,6 +1074,7 @@ const WarehouseHeatmap = () => {
     {getLegendColors(darkMode).map((item, index) => (
       <div 
         key={index}
+        title={`Click to highlight areas with ${item.label.toLowerCase()} visits`}
         style={{
           ...legendItemStyle,
           opacity: selectedColorFilter === null || selectedColorFilter === item.color ? 1 : 0.5,
@@ -1571,8 +1389,8 @@ const WarehouseHeatmap = () => {
             <span>{id}</span>
             <span>
               {heatmapParameter === 'time' && `${value} seconds`}
-              {heatmapParameter === 'count' && `${value} people`}
-              {heatmapParameter === 'power' && `${value} kWh`}
+              {heatmapParameter === 'count' && `${value} assets`}
+              {heatmapParameter === 'power' && `${value} Kwh`}
               {heatmapParameter === 'visits' && `${value} visits`}
             </span>
           </li>
