@@ -1,4 +1,4 @@
-# RTLS Dashboard  
+# Historical Movement & Zone Analytics Dashboard
 A React-based dashboard visualises the past movement of assets in warehouse environments. It has extended traditional RTLS capabilities with a post-event spatiotemporal analytics layer, which enables heatmaps, trajectory intelligence and behaviour-based zone optimisation.
 
 # Tools & Technologies Used 
