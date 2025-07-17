@@ -44,12 +44,21 @@ const LiveTrailDashboard = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
   const [allAssetsPaths, setAllAssetsPaths] = useState<Record<string, { x: number; y: number; popup?: boolean; zoneName?: string }[]>>({});
   const [checkedAssetsPaths, setCheckedAssetsPaths] = useState<Record<string, { x: number; y: number; popup?: boolean; zoneName?: string }[]>>({});
   const [trailPath, setTrailPath] = useState<{ x: number; y: number; popup?: boolean; zoneName?: string }[]>([]);
   const [heatmapOption, setHeatmapOption] = useState('');
 const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
+const [darkMode, setDarkMode] = useState(() => {
+  const saved = localStorage.getItem('darkMode');
+  return saved === 'true'; // fallback is light mode
+});
+
+useEffect(() => {
+  localStorage.setItem('darkMode', String(darkMode));
+}, [darkMode]);
+
+
 
 
 

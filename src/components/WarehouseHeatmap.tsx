@@ -55,7 +55,6 @@ interface DocumentWithFullscreen extends Document {
 
 const WarehouseHeatmap = () => {
   const location = useLocation();
-  const [darkMode, setDarkMode] = useState(false);
   const [heatmapParameter, setHeatmapParameter] = useState('time');
   const [whichZone, setWhichZone] = useState('Whole Warehouse');
   const [intensity, setIntensity] = useState(5);
@@ -76,6 +75,16 @@ const WarehouseHeatmap = () => {
   const [isHeatmapHovered, setIsHeatmapHovered] = useState(false);
   const heatmapRef = useRef(null);
   const [heatmapOption, setHeatmapOption] = useState('');
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode');
+    return saved === 'true';
+  });
+  
+
+  useEffect(() => {
+    localStorage.setItem('darkMode', String(darkMode));
+  }, [darkMode]);
+  
 
   // Check for mobile screen size
   useEffect(() => {
@@ -1399,14 +1408,8 @@ const WarehouseHeatmap = () => {
     </div>
   </div>
 </div>
-
-          
-             
-            
             </div>
           </div>
-        
- 
     
   );
 };

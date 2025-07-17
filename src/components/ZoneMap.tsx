@@ -1,7 +1,8 @@
 import React from 'react';
 
 interface ZoneMapProps {
-  darkMode: boolean;
+  isDarkMode
+: boolean;
   zoneCoordinates: {
     [key: string]: { x: number; y: number; width: number; height: number } | null;
   };
@@ -9,17 +10,21 @@ interface ZoneMapProps {
 }
 
 const ZoneMap: React.FC<ZoneMapProps> = ({
-  darkMode,
+  isDarkMode
+,
   zoneCoordinates,
   selectedZone,
 }) => {
   const getFillColor = (zone: string) => {
-    const baseColor = darkMode ? '#444' : '#d3d3d3';
-    const selectedColor = darkMode ? '#8884d8' : '#8884d8';
+    const baseColor = isDarkMode
+ ? '#444' : '#d3d3d3';
+    const selectedColor = isDarkMode
+ ? '#8884d8' : '#8884d8';
     return selectedZone === zone ? selectedColor : baseColor;
   };
 
-  const getTextColor = () => (darkMode ? '#fff' : '#000');
+  const getTextColor = () => (isDarkMode
+ ? '#fff' : '#000');
 
   return (
     <>
