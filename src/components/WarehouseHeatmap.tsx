@@ -4,8 +4,6 @@ import {
   FaMapMarkerAlt,
   FaTruck,
   FaClock,
-  FaMoon,
-  FaSun,
   FaSearchPlus,
   FaSearchMinus,
   FaExpand,

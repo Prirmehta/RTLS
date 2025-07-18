@@ -15,8 +15,7 @@ import {
   FaCompress,
   FaSearchPlus,
   FaSearchMinus,
-  FaMoon,
-  FaSun,
+  
 } from 'react-icons/fa';
 import { IoSunny } from "react-icons/io5";
 import { HiMoon } from "react-icons/hi2";
